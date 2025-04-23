@@ -1,0 +1,30 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .rounded-button-custom {
+    @apply rounded-lg transition-all duration-200;
+  }
+
+  .\!rounded-button {
+    @apply rounded-lg transition-all duration-200;
+  }
+}
+
+@layer utilities {
+  .bg-gradient-custom {
+    background: linear-gradient(135deg, #f0f4ff 0%, #e6eeff 100%);
+  }
+
+  .shadow-custom {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
+}
+
+.bind-wallet-btn>div,
+.bind-wallet-btn>div>button {
+  width: 100% !important;
+  height: 3rem !important;
+  text-align: center !important;
+}

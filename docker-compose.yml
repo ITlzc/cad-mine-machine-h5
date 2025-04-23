@@ -1,0 +1,10 @@
+services:
+  nextjs:
+    build:
+      context: .
+    container_name: compute-frontend
+    restart: always
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env.local
