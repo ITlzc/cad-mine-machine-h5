@@ -58,7 +58,7 @@ export default function Home() {
   return (
     //min-h-screen 高度减去tabbar的高度 
     <main className=" flex flex-col">
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto pb-20">
         <MinerList />
       </div>
 

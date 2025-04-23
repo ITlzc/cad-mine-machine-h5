@@ -142,13 +142,13 @@ export default function BuyForm({ visible, onClose, onSubmit, miner }: Props) {
             <img
               src={miner.image}
               alt={miner.title}
-              className="w-24 h-24 object-cover rounded-lg"
+              className="w-20 h-20 object-cover rounded-lg"
             />
             <div className="flex-1">
-              <h3 className="text-lg font-medium">{miner.title}</h3>
-              <ExpandableText text={miner.description} />
+              <h3 className="text-md font-medium">{miner.title}</h3>
+              {/* <ExpandableText text={miner.description} /> */}
               <div className="text-[#F5B544] text-lg mt-2">
-                US ${miner.price.toFixed(2)}
+                US ${miner.price}
               </div>
             </div>
           </div>

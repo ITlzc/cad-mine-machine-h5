@@ -351,7 +351,7 @@ export default function OrdersPage() {
               </div>
             </div>
 
-            {(order.status === 0 || order.status === 5) && (
+            {(order.status === 0) && (
               <div className="grid grid-cols-2 gap-3 mt-4">
                 {order.status === 0 && (
                   <Button

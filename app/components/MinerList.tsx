@@ -289,12 +289,10 @@ export default function MinerList() {
         {miners.map((miner) => (
           <div key={miner.id} className="bg-white p-4 rounded-xl shadow-[0_2px_12px_0_rgba(0,0,0,0.07)]">
             <div className="flex space-x-4">
-              <Image
+              <img
                 src={miner.image}
-                width={120}
-                height={120}
-                fit="cover"
-                className="rounded-lg"
+                alt={miner.title}
+                className="w-20 h-20 object-cover rounded-lg"
               />
               <div className="flex-1 flex flex-col justify-between">
                 <div>
@@ -310,7 +308,7 @@ export default function MinerList() {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-[#F5B544] text-lg">
-                    US ${miner.price.toFixed(2)}
+                    ${miner.price} U
                   </span>
                   <Button
                     className="!bg-[#F5B544] !text-white rounded-full px-6 shadow-[0_2px_8px_0_rgba(245,181,68,0.35)]"
