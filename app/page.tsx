@@ -1,7 +1,5 @@
 'use client'
 
-import { TabBar } from 'antd-mobile'
-import { AppOutline, UserOutline, TruckOutline } from 'antd-mobile-icons'
 import { useState, useEffect } from 'react'
 import MinerList from './components/MinerList'
 import WalletModal from './components/WalletModal'
@@ -11,9 +9,11 @@ import { getCurrentUser } from './utils/supabase_lib'
 
 export default function Home() {
   const [showWalletModal, setShowWalletModal] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
 
   const handleBindWallet = async (address: string) => {
     try {
+      setSubmitting(true)
       if (typeof window.ethereum !== 'undefined') {
         if (address) {
           await userService.bindWalletAddress(address)
@@ -21,13 +21,9 @@ export default function Home() {
             content: '绑定成功',
             icon: 'success',
           })
+          setSubmitting(false)
           setShowWalletModal(false)
         }
-      } else {
-        Toast.show({
-          content: '请安装 MetaMask 钱包！',
-          icon: 'fail',
-        })
       }
     } catch (error) {
       console.error('连接钱包失败:', error)
@@ -35,26 +31,32 @@ export default function Home() {
         content: '连接钱包失败',
         icon: 'fail',
       })
+    } finally {
+      setSubmitting(false)
     }
   }
 
   useEffect(() => {
     async function getUserInfo() {
-      const { user: user_data, error } = await getCurrentUser();
-      if (error) {
+      try {
+        const { user: user_data, error } = await getCurrentUser();
+        if (error) {
+          console.error('获取用户信息失败:', error)
+        } else {
+          const userInfo: any = await userService.getUserInfo(user_data?.id)
+          console.log('用户信息:', userInfo, userInfo && userInfo?.user && !userInfo?.user.wallet_address)
+          if (userInfo && userInfo?.user && !userInfo?.user.wallet_address) {
+            setShowWalletModal(true)
+          }
+        }
+      } catch (error) {
         console.error('获取用户信息失败:', error)
-      } else {
-        const userInfo: any = await userService.getUserInfo(user_data?.id)
-        console.log('用户信息:', userInfo, userInfo && userInfo?.user && !userInfo?.user.wallet_address)
-        if(userInfo && userInfo?.user && !userInfo?.user.wallet_address) {
-          setShowWalletModal(true)
-        } 
       }
     }
     getUserInfo()
 
   }, [])
-  
+
   return (
     //min-h-screen 高度减去tabbar的高度 
     <main className=" flex flex-col">
@@ -66,6 +68,7 @@ export default function Home() {
         isOpen={showWalletModal}
         onClose={() => setShowWalletModal(false)}
         onConnect={(address: string) => handleBindWallet(address)}
+        submitting={submitting}
       />
     </main>
   )

@@ -8,7 +8,6 @@ import BuyForm from './BuyForm'
 import PaymentModal from './PaymentModal'
 import { Toast } from 'antd-mobile'
 import { toast } from 'react-hot-toast'
-import { orderService } from '../services/order-service'
 import { useAccount, useWriteContract, usePublicClient } from 'wagmi'
 import { Bsc } from '../utils/bsc_config'
 import { useConnectModal } from '@rainbow-me/rainbowkit'
@@ -217,10 +216,11 @@ export default function MinerList() {
         })
 
         // setShowPaymentModal(true)
-        Toast.show({
-          content: '订单创建成功,请在钱包中确认支付',
-          icon: 'success',
-        })
+        toast.success('订单创建成功,请在钱包中确认支付')
+        // Toast.show({
+        //   content: '订单创建成功,请在钱包中确认支付',
+        //   icon: 'success',
+        // })
 
         setShowBuyForm(false)
         setSelectedMiner(null)

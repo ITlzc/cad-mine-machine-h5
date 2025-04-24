@@ -1,22 +1,31 @@
 'use client'
 
 import { useAccount } from 'wagmi'
-import { ConnectButton } from '@rainbow-me/rainbowkit'
-import { useEffect } from 'react'
+import { ConnectButton, useConnectModal } from '@rainbow-me/rainbowkit'
 import { Popup } from 'antd-mobile'
 
-export default function WalletModal({ isOpen, onClose, onConnect }: {
+export default function WalletModal({ isOpen, onClose, onConnect, submitting }: {
   isOpen: boolean
   onClose: () => void
   onConnect: (address: string) => void
+  submitting: boolean
 }) {
-  const { address } = useAccount()
+  const { address, isConnected } = useAccount()
+  const { openConnectModal } = useConnectModal()
 
-  useEffect(() => {
-    if (address && isOpen) {
+  const handleBindWallet = async () => {
+    if (!isConnected) {
+      // 如果未连接钱包，先打开连接钱包弹窗
+      openConnectModal?.()
+      return
+    }
+
+    // 如果已连接钱包，直接执行绑定操作
+    if (address) {
       onConnect(address)
     }
-  }, [address, isOpen])
+  }
+
 
   return (
     <Popup
@@ -25,8 +34,9 @@ export default function WalletModal({ isOpen, onClose, onConnect }: {
       bodyStyle={{
         borderTopLeftRadius: '12px',
         borderTopRightRadius: '12px',
-        minHeight: '40vh',
-        padding: '20px'
+        minHeight: '40%',
+        padding: '20px',
+        paddingBottom: 'env(safe-area-inset-bottom)'
       }}
     >
       <div className="flex flex-col items-center">
@@ -34,18 +44,16 @@ export default function WalletModal({ isOpen, onClose, onConnect }: {
         <p className="text-gray-500 text-sm text-center mb-8">
           绑定钱包地址以便进行交易和收益提现
         </p>
-        
+
         <div className="w-full space-y-3">
-          {!address ? (
-            <div className="flex items-center justify-center w-full bind-wallet-btn bg-[#1677FF] text-white rounded-lg">
-              <ConnectButton label="连接钱包" />
-            </div>
-          ) : (
-            <div className="w-full py-3 bg-[#1677FF] text-white rounded-lg text-center">
-              绑定中...
-            </div>
-          )}
-          
+          <button
+            className='w-full py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center w-full bind-wallet-btn'
+            onClick={handleBindWallet}
+            disabled={submitting}
+          >
+            {submitting ? '绑定中...' : (isConnected ? '绑定钱包' : '连接钱包')}
+          </button>
+
           <button
             onClick={onClose}
             className="w-full py-3 bg-gray-100 text-gray-600 rounded-lg"

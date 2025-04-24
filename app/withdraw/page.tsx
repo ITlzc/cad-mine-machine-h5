@@ -199,8 +199,10 @@ export default function WithdrawPage() {
         onMaskClick={() => setShowRecords(false)}
         position="top"
         bodyStyle={{
-          height: '100vh',
-          backgroundColor: '#fff'
+          height: '100%',
+          backgroundColor: '#fff',
+          overflowY: 'auto',
+          paddingBottom: 'env(safe-area-inset-bottom)'
         }}
       >
         <div className="h-full flex flex-col">

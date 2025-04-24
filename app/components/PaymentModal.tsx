@@ -59,7 +59,11 @@ export default function PaymentModal({
       visible={isOpen}
       onMaskClick={onClose}
       position="bottom"
-      bodyStyle={{ height: '90vh' }}
+      bodyStyle={{ 
+        height: '90%', 
+        overflowY: 'auto',
+        paddingBottom: 'env(safe-area-inset-bottom)'
+      }}
     >
       <div className="flex flex-col h-full bg-white">
         {/* 标题 */}

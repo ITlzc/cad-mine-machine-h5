@@ -31,11 +31,6 @@ export default function SettingsPage() {
           setShowWalletModal(false)
           getUserInfo()
         }
-      } else {
-        Toast.show({
-          content: '请安装 MetaMask 钱包！',
-          icon: 'fail',
-        })
       }
     } catch (error) {
       console.error('连接钱包失败:', error)
@@ -176,6 +171,7 @@ export default function SettingsPage() {
         isOpen={showWalletModal}
         onClose={() => setShowWalletModal(false)}
         onConnect={(address: string) => handleBindWallet(address)}
+        submitting={submitting}
       />
     </div>
   )

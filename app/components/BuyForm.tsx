@@ -130,7 +130,11 @@ export default function BuyForm({ visible, onClose, onSubmit, miner }: Props) {
       visible={visible}
       onMaskClick={onClose}
       position="bottom"
-      bodyStyle={{ height: '92vh', overflowY: 'auto' }}
+      bodyStyle={{ 
+        height: '90%', 
+        overflowY: 'auto',
+        paddingBottom: 'env(safe-area-inset-bottom)'
+      }}
     >
       <div className="flex flex-col h-full bg-white">
         {/* 矿机信息 */}
@@ -205,7 +209,11 @@ export default function BuyForm({ visible, onClose, onSubmit, miner }: Props) {
               visible={showPoolPicker}
               onMaskClick={() => setShowPoolPicker(false)}
               position="bottom"
-              bodyStyle={{ height: '80vh', overflowY: 'auto' }}
+              bodyStyle={{ 
+                height: '80%', 
+                overflowY: 'auto',
+                paddingBottom: 'env(safe-area-inset-bottom)'
+              }}
             >
               <div className="flex flex-col h-full">
                 <div className="flex justify-between items-center p-4 border-b">
@@ -373,7 +381,11 @@ export default function BuyForm({ visible, onClose, onSubmit, miner }: Props) {
               visible={showCountryPicker}
               onMaskClick={() => setShowCountryPicker(false)}
               position="bottom"
-              bodyStyle={{ height: '80vh' }}
+              bodyStyle={{ 
+                height: '80%', 
+                overflowY: 'auto',
+                paddingBottom: 'env(safe-area-inset-bottom)'
+              }}
             >
               <div className="flex flex-col h-full">
                 <div className="flex justify-between items-center p-4 border-b">

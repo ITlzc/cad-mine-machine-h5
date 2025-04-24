@@ -9,7 +9,7 @@ export const config = getDefaultConfig({
   projectId: 'd43e2f36c80cb43c87b4a38b44e2036b', //https://cloud.reown.com/ 获取
   wallets: [{
     groupName: 'Recommended',
-    wallets: [injectedWallet, metaMaskWallet, walletConnectWallet]
+    wallets: typeof window.ethereum !== 'undefined' ? [injectedWallet, metaMaskWallet, walletConnectWallet] : [walletConnectWallet]
   }],
   chains: [
     Bsc,
