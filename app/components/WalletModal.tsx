@@ -3,7 +3,8 @@
 import { useAccount } from 'wagmi'
 import { ConnectButton, useConnectModal } from '@rainbow-me/rainbowkit'
 import { Popup } from 'antd-mobile'
-
+import { useState } from 'react'
+import Loading from './Loading'
 export default function WalletModal({ isOpen, onClose, onConnect, submitting }: {
   isOpen: boolean
   onClose: () => void
@@ -12,8 +13,12 @@ export default function WalletModal({ isOpen, onClose, onConnect, submitting }: 
 }) {
   const { address, isConnected } = useAccount()
   const { openConnectModal } = useConnectModal()
+  const [visible, setVisible] = useState(true)
+  const [isLoading, setIsLoading] = useState(false)
 
   const handleBindWallet = async () => {
+    setVisible(false)
+    setIsLoading(true)
     if (!isConnected) {
       // 如果未连接钱包，先打开连接钱包弹窗
       openConnectModal?.()
@@ -24,14 +29,30 @@ export default function WalletModal({ isOpen, onClose, onConnect, submitting }: 
     if (address) {
       onConnect(address)
     }
+    setIsLoading(false)
   }
 
-  if (!isOpen || submitting) return null;
+  if (!isOpen) return null;
+  if (isLoading) return (
+    <Popup
+      visible={isLoading}
+      onMaskClick={onClose}
+      bodyStyle={{
+        borderTopLeftRadius: '12px',
+        borderTopRightRadius: '12px',
+        minHeight: '40%',
+        padding: '20px',
+        paddingBottom: 'env(safe-area-inset-bottom)'
+      }}
+    >
+      <Loading />
+    </Popup>
+  )
 
 
   return (
     <Popup
-      visible={isOpen}
+      visible={isOpen && visible}
       onMaskClick={onClose}
       bodyStyle={{
         borderTopLeftRadius: '12px',
