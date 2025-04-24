@@ -19,6 +19,9 @@ export default function WalletModal({ isOpen, onClose, onConnect, submitting }: 
   const handleBindWallet = async () => {
     setVisible(false)
     setIsLoading(true)
+    setTimeout(() => {
+      setIsLoading(false)
+    }, 3000);
     if (!isConnected) {
       // 如果未连接钱包，先打开连接钱包弹窗
       openConnectModal?.()
