@@ -26,6 +26,8 @@ export default function WalletModal({ isOpen, onClose, onConnect, submitting }: 
     }
   }
 
+  if (!isOpen || submitting) return null;
+
 
   return (
     <Popup

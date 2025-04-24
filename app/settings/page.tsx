@@ -159,7 +159,7 @@ export default function SettingsPage() {
               {walletAddress}
             </div>
           ) : (
-            <button className="w-full bg-[#165DFF] text-white py-3 rounded-lg flex items-center justify-center text-base">
+            <button onClick={() => setShowWalletModal(true)} className="w-full bg-[#165DFF] text-white py-3 rounded-lg flex items-center justify-center text-base">
               <i className="fas fa-wallet mr-2"></i>
               绑定钱包
             </button>
