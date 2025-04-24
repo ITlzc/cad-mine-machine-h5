@@ -28,13 +28,16 @@ export default function WalletModal({ isOpen, onClose, onConnect, submitting }: 
     }
   }
 
-  if (!isOpen) return null;
-
   useEffect(() => {
     if (isOpen && visible && address) {
       onConnect(address)
     }
-  }, [isOpen, address, onConnect, visible])
+  }, [isOpen, address, visible])
+
+
+  if (!isOpen) return null;
+
+ 
 
 
   return (
