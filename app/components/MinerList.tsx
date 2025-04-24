@@ -200,7 +200,7 @@ export default function MinerList() {
 
         const response: any = await minerService.createOrder({
           machine_id: orderData.minerId,
-          pool_id: orderData.poolId[0],
+          pool_id: orderData.poolId,
           quantity: orderData.quantity,
           shipping_info: {
             receiver: orderData.receiver,
@@ -221,6 +221,9 @@ export default function MinerList() {
           content: '订单创建成功,请在钱包中确认支付',
           icon: 'success',
         })
+
+        setShowBuyForm(false)
+        setSelectedMiner(null)
 
 
         // 检测是否为钱包环境
@@ -265,8 +268,6 @@ export default function MinerList() {
           setShowPaymentModal(true)
           setIsSubmitting(false)
         }
-
-
       }
       setShowBuyForm(false)
       setSelectedMiner(null)
@@ -296,7 +297,7 @@ export default function MinerList() {
               />
               <div className="flex-1 flex flex-col justify-between">
                 <div>
-                  <h3 className="text-lg font-medium">{miner.title}</h3>
+                  <h3 className="text-base font-medium">{miner.title}</h3>
                   <ExpandableText text={miner.description} />
                   {/* <div className="relative">
                     <p

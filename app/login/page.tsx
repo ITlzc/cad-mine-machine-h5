@@ -97,8 +97,8 @@ const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="flex h-full items-center justify-center min-h-screen bg-gray-50">
-      <div className="w-full h-screen bg-white rounded-lg p-8 pt-20">
+    <div className="flex h-full items-center justify-center bg-gray-50">
+      <div className="w-full bg-white rounded-lg p-8 pt-20">
         <div className="flex justify-center mb-6">
           <Image 
             src="/images/logo.svg" 
@@ -112,7 +112,7 @@ const LoginPage: React.FC = () => {
         
         <form onSubmit={handleLogin} className="space-y-6">
           <div>
-            <label className="block text-base font-medium text-gray-700 mb-2">邮箱地址</label>
+            <label className="block text-base text-gray-700 mb-2">邮箱地址</label>
             <input
               type="email"
               value={email}
@@ -124,23 +124,23 @@ const LoginPage: React.FC = () => {
           </div>
           
           <div>
-            <label className="block text-base font-medium text-gray-700 mb-2">验证码</label>
+            <label className="block text-base text-gray-700 mb-2">验证码</label>
             <div className="flex gap-4">
               <input
                 type="text"
                 value={verificationCode}
                 onChange={(e) => setVerificationCode(e.target.value)}
                 placeholder="请输入验证码"
-                className="text-base px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="text-base w-[70%] px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
               />
               <button
                 type="button"
                 onClick={handleSendVerificationCode}
                 disabled={isSendingCode || countdown > 0}
-                className="text-sm px-2 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
+                className="text-sm w-[30%] py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 text-center"
               >
-                {isSendingCode ? '发送中...' : countdown > 0 ? `${countdown}秒` : '发送验证码'}
+                {isSendingCode ? '发送中...' : countdown > 0 ? `${countdown}秒后重发` : '发送验证码'}
               </button>
             </div>
           </div>

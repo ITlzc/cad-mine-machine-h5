@@ -40,7 +40,7 @@ export default function RootLayout({
           <div className="min-h-screen bg-white">
             {showLayout && <Header />}
             <div className="flex flex-col">
-              <main className={`flex-1 ${showLayout ? 'md:px-4 md:pb-0' : ''} overflow-x-auto`}>
+              <main className={`flex-1 ${showLayout ? 'md:px-4 md:pb-0' : ''}`}>
                 <AuthProvider>
                   {children}
                   <Toaster position="top-right" />

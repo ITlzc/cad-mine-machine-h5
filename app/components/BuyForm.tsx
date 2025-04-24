@@ -60,6 +60,8 @@ export default function BuyForm({ visible, onClose, onSubmit, miner }: Props) {
   const [submitting, setSubmitting] = useState(false)
   const [selectedCountryCode, setSelectedCountryCode] = useState('+86')
   const [showCountryPicker, setShowCountryPicker] = useState(false)
+  const [selectedPool, setSelectedPool] = useState<Pool | null>(null)
+  const [showPoolPicker, setShowPoolPicker] = useState(false)
 
   useEffect(() => {
     if (visible) {
@@ -67,6 +69,7 @@ export default function BuyForm({ visible, onClose, onSubmit, miner }: Props) {
     } else {
       // 关闭时重置表单
       form.resetFields()
+      setSelectedPool(null)
     }
   }, [visible])
 
@@ -127,14 +130,14 @@ export default function BuyForm({ visible, onClose, onSubmit, miner }: Props) {
       visible={visible}
       onMaskClick={onClose}
       position="bottom"
-      bodyStyle={{ height: '90vh' }}
+      bodyStyle={{ height: '92vh', overflowY: 'auto' }}
     >
       <div className="flex flex-col h-full bg-white">
         {/* 矿机信息 */}
-        <div className="p-4 border-b relative">
-          <div className="absolute right-4 top-[-30px]">
+        <div className="px-4 py-2 pt-4 border-b relative">
+          <div className="absolute right-4 top-4">
             <CloseOutline
-              className="text-white text-xl"
+              className="text-gray-500 text-xl"
               onClick={onClose}
             />
           </div>
@@ -145,10 +148,10 @@ export default function BuyForm({ visible, onClose, onSubmit, miner }: Props) {
               className="w-20 h-20 object-cover rounded-lg"
             />
             <div className="flex-1">
-              <h3 className="text-md font-medium">{miner.title}</h3>
+              <h3 className="text-base flex max-w-[90%] font-medium">{miner.title}</h3>
               {/* <ExpandableText text={miner.description} /> */}
               <div className="text-[#F5B544] text-lg mt-2">
-                US ${miner.price}
+                ${miner.price} U
               </div>
             </div>
           </div>
@@ -159,8 +162,8 @@ export default function BuyForm({ visible, onClose, onSubmit, miner }: Props) {
           <Form
             form={form}
             layout="horizontal"
-            className="p-4"
-            requiredMarkStyle="text-required"
+            className="py-4"
+            requiredMarkStyle="none"
             initialValues={{
               MPQ: miner.MPQ,
             }}
@@ -179,31 +182,72 @@ export default function BuyForm({ visible, onClose, onSubmit, miner }: Props) {
             }
           >
             <div className="mb-4">
-              <div className="mb-2 px-4 py-2 text-[18px] text-[var(--adm-color-text-secondary)]">选择矿池</div>
-              {loading ? <Loading /> :
+              {/* <div className="mb-2 px-4 py-2 text-sm text-[var(--adm-color-text-secondary)]">选择矿池</div> */}
+              {
                 <Form.Item
                   name="poolId"
+                  label="选择矿池"
                   rules={[{ required: true, message: '请选择矿池' }]}
-                  className="pb-0"
+                  className="!text-base"
                 >
-                  <Selector
-                    columns={1}
-                    options={pools.map(pool => ({
-                      label: (
-                        <div className="flex items-start py-2">
-                          <img src={pool.logo} alt={pool.name} className="w-8 h-8 mr-3 mt-0.5" />
-                          <div className="flex-1 text-left">
-                            <div className="font-medium text-base">{pool.name}</div>
-                            <div className="text-sm text-gray-500 mt-1">{pool.description}</div>
-                          </div>
-                        </div>
-                      ),
-                      value: pool.id
-                    }))}
-                  />
+                  <div
+                    className="px-3 py-2 border rounded-lg cursor-pointer text-sm flex justify-between items-center"
+                    onClick={() => setShowPoolPicker(true)}
+                  >
+                    <span>{selectedPool ? selectedPool.name : '请选择矿池'}</span>
+                    <span className="text-gray-400">▼</span>
+                  </div>
                 </Form.Item>
               }
             </div>
+
+            <Popup
+              visible={showPoolPicker}
+              onMaskClick={() => setShowPoolPicker(false)}
+              position="bottom"
+              bodyStyle={{ height: '80vh', overflowY: 'auto' }}
+            >
+              <div className="flex flex-col h-full">
+                <div className="flex justify-between items-center p-4 border-b">
+                  <div className="text-lg font-medium">选择矿池</div>
+                  <CloseOutline
+                    className="text-gray-500 text-xl"
+                    onClick={() => setShowPoolPicker(false)}
+                  />
+                </div>
+                <div className="flex-1 overflow-y-auto p-4">
+                  <div className="space-y-4">
+                    {loading ? <Loading /> : pools.map(pool => (
+                      <div 
+                        key={pool.id}
+                        className={`p-3 border rounded-lg cursor-pointer ${selectedPool?.id === pool.id ? 'border-[#F5B544] bg-[#FFF9E8]' : 'border-gray-200'}`}
+                        onClick={() => {
+                          setSelectedPool(pool)
+                          form.setFieldValue('poolId', pool.id)
+                          form.validateFields(['poolId'])
+                            .then(() => {
+                              // 验证通过，关闭弹窗
+                              setShowPoolPicker(false)
+                            })
+                            .catch(() => {
+                              // 验证失败，保持弹窗打开
+                              console.log('验证失败')
+                            })
+                        }}
+                      >
+                        <div className="flex items-start">
+                          <img src={pool.logo} alt={pool.name} className="w-8 h-8 mr-3 mt-0.5" />
+                          <div className="flex-1">
+                            <div className="font-medium text-sm">{pool.name}</div>
+                            <div className="text-xs text-gray-500 mt-1">{pool.description}</div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </Popup>
 
             <Form.Item
               name="quantity"
@@ -220,13 +264,14 @@ export default function BuyForm({ visible, onClose, onSubmit, miner }: Props) {
                 }
               ]}
               initialValue={miner.MPQ}
+              className="!text-base"
             >
               <Stepper
                 min={miner.MPQ}
-                className="!text-base"
+                className="!text-sm"
                 defaultValue={miner.MPQ}
               />
-              <div className="text-sm text-gray-500 mt-1">
+              <div className="text-xs text-gray-500 mt-1">
                 {miner.MPQ}台起订
               </div>
             </Form.Item>
@@ -235,19 +280,20 @@ export default function BuyForm({ visible, onClose, onSubmit, miner }: Props) {
               name="receiver"
               label="收货人"
               rules={[{ required: true, message: '请输入收货人姓名' }]}
+              className="!text-base !placeholder:text-xs"
             >
-              <Input placeholder="请填写收货人姓名" />
+              <Input placeholder="请填写收货人姓名" className="!text-sm !placeholder:text-xs" />
             </Form.Item>
 
             <Form.Item
               name="phone"
               label="手机号码"
               rules={[
-                { required: true, },
+                { required: true, message: '请输入正确的手机号码' },
                 { 
                   validator: (_, value) => {
                     if (selectedCountryCode === '+86' && !/^1[3-9]\d{9}$/.test(value)) {
-                      return Promise.reject('请输入正确的中国大陆手机号码')
+                      return Promise.reject('')
                     }
                     if (selectedCountryCode === '+852' && !/^[5-9]\d{7}$/.test(value)) {
                       return Promise.reject('请输入正确的中国香港手机号码')
@@ -310,15 +356,16 @@ export default function BuyForm({ visible, onClose, onSubmit, miner }: Props) {
                   }
                 }
               ]}
+              className="!text-base"
             >
               <div className="flex items-center space-x-2">
                 <div
-                  className="px-3 py-2 border rounded-lg cursor-pointer"
+                  className="px-3 py-2 border rounded-lg cursor-pointer text-sm"
                   onClick={() => setShowCountryPicker(true)}
                 >
                   {selectedCountryCode}
                 </div>
-                <Input placeholder="请填写手机号码" type="tel" />
+                <Input placeholder="请填写手机号码" type="tel" className="!text-sm !placeholder:text-xs" />
               </div>
             </Form.Item>
 
@@ -326,19 +373,27 @@ export default function BuyForm({ visible, onClose, onSubmit, miner }: Props) {
               visible={showCountryPicker}
               onMaskClick={() => setShowCountryPicker(false)}
               position="bottom"
-              bodyStyle={{ height: '90vh' }}
+              bodyStyle={{ height: '80vh' }}
             >
-              <div className="p-4">
-                <div className="text-lg font-medium mb-4">选择国家/地区</div>
-                <Selector
-                  columns={1}
-                  options={countryCodes}
-                  value={[selectedCountryCode]}
-                  onChange={(arr) => {
-                    setSelectedCountryCode(arr[0])
-                    setShowCountryPicker(false)
-                  }}
-                />
+              <div className="flex flex-col h-full">
+                <div className="flex justify-between items-center p-4 border-b">
+                  <div className="text-lg font-medium">选择国家/地区</div>
+                  <CloseOutline
+                    className="text-gray-500 text-xl"
+                    onClick={() => setShowCountryPicker(false)}
+                  />
+                </div>
+                <div className="flex-1 overflow-y-auto p-4">
+                  <Selector
+                    columns={1}
+                    options={countryCodes}
+                    value={[selectedCountryCode]}
+                    onChange={(arr) => {
+                      setSelectedCountryCode(arr[0])
+                      setShowCountryPicker(false)
+                    }}
+                  />
+                </div>
               </div>
             </Popup>
 
@@ -346,11 +401,12 @@ export default function BuyForm({ visible, onClose, onSubmit, miner }: Props) {
               name="address"
               label="收货地址"
               rules={[{ required: true, message: '请输入详细地址' }]}
+              className="!text-base"
             >
               <TextArea
                 placeholder="请填写详细地址"
                 rows={3}
-                className="!text-base"
+                className="!text-sm placeholder:text-xs"
               />
             </Form.Item>
             <Form.Item
@@ -359,8 +415,9 @@ export default function BuyForm({ visible, onClose, onSubmit, miner }: Props) {
               rules={[
                 { pattern: /^[0-9]{6}$/, message: '请输入正确的邮政编码' }
               ]}
+              className="!text-base"
             >
-              <Input placeholder="请填写邮政编码" />
+              <Input placeholder="请填写邮政编码" className="!text-sm placeholder:text-xs" />
             </Form.Item>
           </Form>
         </div>

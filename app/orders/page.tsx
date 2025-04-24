@@ -7,8 +7,7 @@ import { minerService } from '../services/miner-service'
 import { orderService } from '../services/order-service'
 import Loading from '../components/Loading'
 import PaymentModal from '../components/PaymentModal'
-import ConfirmModal from '../components/ConfirmModal'
-import { Toast } from 'antd-mobile'
+import { Toast, Dialog } from 'antd-mobile'
 import moment from 'moment'
 import { SearchBar, Button, InfiniteScroll } from 'antd-mobile'
 import { toast } from 'react-hot-toast'
@@ -38,10 +37,8 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [searchValue, setSearchValue] = useState('')
-  const [searchInput, setSearchInput] = useState('')
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [currentOrder, setCurrentOrder] = useState<any>(null)
-  const [showConfirmModal, setShowConfirmModal] = useState(false)
   const [orderToCancel, setOrderToCancel] = useState<any>(null)
   const [hasMore, setHasMore] = useState(true)
   const [page, setPage] = useState(1)
@@ -109,7 +106,6 @@ export default function OrdersPage() {
   }
 
   const handleSearch = () => {
-    setSearchValue(searchInput)
     setPage(1)
     setOrders([])
     fetchOrders()
@@ -117,7 +113,16 @@ export default function OrdersPage() {
 
   const handleCancelClick = (order: any) => {
     setOrderToCancel(order)
-    setShowConfirmModal(true)
+
+    Dialog.confirm({
+      title: '取消订单',
+      content: '确定要取消该订单吗？',
+      confirmText: '确定',
+      cancelText: '取消',
+      onConfirm: () => {
+        handleCancelConfirm()
+      },
+    });
   }
   const handleCancelConfirm = async () => {
     if (!orderToCancel) return
@@ -137,7 +142,6 @@ export default function OrdersPage() {
         icon: 'fail',
       })
     } finally {
-      setShowConfirmModal(false)
       setOrderToCancel(null)
     }
   }
@@ -314,17 +318,16 @@ export default function OrdersPage() {
         <div className="flex items-center space-x-2">
           <SearchBar
             placeholder="搜索订单号"
-            value={searchInput}
-            onChange={setSearchInput}
-            className="flex-1"
+            value={searchValue}
+            onChange={(value) => setSearchValue(value)}
+            className="flex-1 h-full"
           />
-          <Button 
-            color="primary" 
-            onClick={handleSearch}
-            className="!bg-[#F5B544] !border-none"
+          <button 
+            onClick={() => handleSearch()}
+            className="!bg-[#F5B544] !text-white !rounded-lg !border-none !py-2 !px-4 !text-sm"
           >
             搜索
-          </Button>
+          </button>
         </div>
       </div>
 
@@ -344,7 +347,7 @@ export default function OrdersPage() {
 
             <div className="flex justify-between items-center mb-3">
               <div className="text-[#F5B544] font-medium">
-                支付金额：US ${order.amount.toFixed(2)}
+                支付金额： ${order.amount.toFixed(2)} U
               </div>
               <div className={`rounded text-xs ${getStatusClass(order.status)}`}>
                 {getStatusTag(order.status)}
@@ -387,18 +390,6 @@ export default function OrdersPage() {
         expiration_time={currentOrder?.expiration_time || ''}
       />
 
-      {/* 确认对话框 */}
-      <ConfirmModal
-        isOpen={showConfirmModal}
-        onClose={() => {
-          setShowConfirmModal(false)
-          setOrderToCancel(null)
-        }}
-        onConfirm={handleCancelConfirm}
-        title="取消订单"
-        content="确定要取消该订单吗？此操作不可恢复。"
-        confirmText="确认取消"
-      />
     </div>
   )
 } 
