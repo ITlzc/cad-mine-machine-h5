@@ -19,7 +19,7 @@ export default function Home() {
           await userService.bindWalletAddress(address)
           Toast.show({
             content: '绑定成功',
-            icon: 'success',
+            position: 'center'
           })
           setSubmitting(false)
           setShowWalletModal(false)
@@ -29,7 +29,7 @@ export default function Home() {
       console.error('连接钱包失败:', error)
       Toast.show({
         content: '连接钱包失败',
-        icon: 'fail',
+        position: 'center'
       })
     } finally {
       setSubmitting(false)

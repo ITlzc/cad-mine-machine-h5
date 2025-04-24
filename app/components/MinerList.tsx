@@ -216,11 +216,11 @@ export default function MinerList() {
         })
 
         // setShowPaymentModal(true)
-        toast.success('订单创建成功,请在钱包中确认支付')
-        // Toast.show({
-        //   content: '订单创建成功,请在钱包中确认支付',
-        //   icon: 'success',
-        // })
+        // toast.success('订单创建成功,请在钱包中确认支付')
+        Toast.show({
+          content: '订单创建成功,请在钱包中确认支付',
+          position: 'top'
+        })
 
         setShowBuyForm(false)
         setSelectedMiner(null)
@@ -275,7 +275,7 @@ export default function MinerList() {
       console.error('Failed to create order:', error)
       Toast.show({
         content: '创建订单失败',
-        icon: 'fail',
+        position: 'center'
       })
     }
   }

@@ -131,7 +131,7 @@ export default function OrdersPage() {
       await orderService.cancelOrder(orderToCancel.id)
       Toast.show({
         content: '订单已取消',
-        icon: 'success',
+        position: 'center'
       })
       // 刷新订单列表
       const res: any = await orderService.orderList()
@@ -139,7 +139,7 @@ export default function OrdersPage() {
     } catch (error) {
       Toast.show({
         content: '取消订单失败',
-        icon: 'fail',
+        position: 'center'
       })
     } finally {
       setOrderToCancel(null)

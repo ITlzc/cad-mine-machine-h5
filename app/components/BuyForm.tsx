@@ -81,7 +81,7 @@ export default function BuyForm({ visible, onClose, onSubmit, miner }: Props) {
     } catch (error) {
       Toast.show({
         content: '获取矿池列表失败',
-        icon: 'fail',
+        position: 'center'
       })
     } finally {
       setLoading(false)

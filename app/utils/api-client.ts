@@ -40,7 +40,7 @@ class ApiClient {
         case 403:
           Toast.show({
             content: '没有权限访问',
-            icon: 'fail',
+            position: 'center'
           })
           break
         // ... 其他错误码处理
