@@ -2,7 +2,8 @@ const { NEXT_QUERY_PARAM_PREFIX } = require('next/dist/lib/constants');
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-    output: 'standalone',
+    output: 'export',
+    trailingSlash: true,
     async rewrites() {
         const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
         if (!backendUrl) {
@@ -25,12 +26,9 @@ const nextConfig = {
       {
         protocol: 'https',
         hostname: 'ai-public.mastergo.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'pbs.twimg.com',
-      },
+      }
     ],
+    unoptimized: true,
   },
 //   headers: [
 //     {

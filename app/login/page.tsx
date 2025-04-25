@@ -13,6 +13,26 @@ const LoginPage: React.FC = () => {
   const [verificationCode, setVerificationCode] = useState('');
   const [isSendingCode, setIsSendingCode] = useState(false);
   const [countdown, setCountdown] = useState(0);
+  const [emailError, setEmailError] = useState('');
+
+  // 邮箱格式验证函数
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    return emailRegex.test(email);
+  };
+
+  // 处理邮箱输入变化
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newEmail = e.target.value;
+    setEmail(newEmail);
+    
+    // 实时验证邮箱格式
+    if (newEmail && !validateEmail(newEmail)) {
+      setEmailError('请输入有效的邮箱地址');
+    } else {
+      setEmailError('');
+    }
+  };
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -29,6 +49,16 @@ const LoginPage: React.FC = () => {
   const handleSendVerificationCode = async () => {
     console.log('handleSendVerificationCode = ',email)
     if (!email || isSendingCode || countdown > 0) return;
+    
+    // 发送验证码前再次验证邮箱格式
+    if (!validateEmail(email)) {
+      setEmailError('请输入有效的邮箱地址');
+      Toast.show({
+        content: '请输入有效的邮箱地址',
+        position: 'center'
+      });
+      return;
+    }
     
     setIsSendingCode(true);
     try {
@@ -54,6 +84,16 @@ const LoginPage: React.FC = () => {
     console.log('handleLogin = ',email,verificationCode)
     e.preventDefault();
     if (!email || !verificationCode) return;
+    
+    // 登录前再次验证邮箱格式
+    if (!validateEmail(email)) {
+      setEmailError('请输入有效的邮箱地址');
+      Toast.show({
+        content: '请输入有效的邮箱地址',
+        position: 'center'
+      });
+      return;
+    }
 
     try {
       // TODO: Implement your login logic here
@@ -116,11 +156,12 @@ const LoginPage: React.FC = () => {
             <input
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={handleEmailChange}
               placeholder="请输入邮箱地址"
-              className="text-base w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className={`text-base w-full px-3 py-2 border ${emailError ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
               required
             />
+            {emailError && <p className="mt-1 text-sm text-red-500">{emailError}</p>}
           </div>
           
           <div>
@@ -137,7 +178,7 @@ const LoginPage: React.FC = () => {
               <button
                 type="button"
                 onClick={handleSendVerificationCode}
-                disabled={isSendingCode || countdown > 0}
+                disabled={isSendingCode || countdown > 0 || !!emailError}
                 className="text-sm w-[30%] py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 text-center"
               >
                 {isSendingCode ? '发送中...' : countdown > 0 ? `${countdown}秒后重发` : '发送验证码'}

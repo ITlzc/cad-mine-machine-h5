@@ -119,16 +119,14 @@ export default function OrdersPage() {
       content: '确定要取消该订单吗？',
       confirmText: '确定',
       cancelText: '取消',
-      onConfirm: () => {
-        handleCancelConfirm()
-      },
+      onConfirm: () => handleCancelConfirm(order)
     });
   }
-  const handleCancelConfirm = async () => {
-    if (!orderToCancel) return
+  const handleCancelConfirm = async (order: any) => {
+    if (!order) return
 
     try {
-      await orderService.cancelOrder(orderToCancel.id)
+      await orderService.cancelOrder(order.id)
       Toast.show({
         content: '订单已取消',
         position: 'center'
