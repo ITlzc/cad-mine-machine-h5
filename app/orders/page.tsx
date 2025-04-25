@@ -274,6 +274,22 @@ export default function OrdersPage() {
     }
   }
 
+  const handleRefreshClick = async (order: any) => {
+    try {
+      setProcessingOrders(prev => ({ ...prev, [order.id]: true }))
+      const res: any = await orderService.orderList()
+      setOrders(res.records)
+      setProcessingOrders(prev => ({ ...prev, [order.id]: false }))
+    } catch (error) {
+      console.error('刷新订单失败:', error)
+      Toast.show({
+        content: '刷新订单失败',
+        position: 'center'
+      })
+      setProcessingOrders(prev => ({ ...prev, [order.id]: false }))
+    }
+  }
+
   const getStatusTag = (status: number) => {
     switch (status) {
       case 0:
@@ -340,7 +356,7 @@ export default function OrdersPage() {
               <div className="text-sm">商品信息：{order.machine_info.title}</div>
               <div className="text-sm">矿池信息：{order.pool_info.name}</div>
               <div className="text-sm">创建时间：{moment(order.created_at).format('YYYY-MM-DD HH:mm:ss')}</div>
-              <div className="text-sm truncate">交易哈希：{order.status === 1 ? order.transaction_hash : '-'}</div>
+              <div className="text-sm truncate">交易哈希：{order.status === 1 ? <a href={`https://bscscan.com/tx/${order.transaction_hash}`} target="_blank" rel="noopener noreferrer">{order.transaction_hash.slice(0, 6)}...{order.transaction_hash.slice(-4)}</a> : '-'}</div>
             </div>
 
             <div className="flex justify-between items-center mb-3">
@@ -352,7 +368,7 @@ export default function OrdersPage() {
               </div>
             </div>
 
-            {(order.status === 0) && (
+            {(order.status === 0 ) && (
               <div className="grid grid-cols-2 gap-3 mt-4">
                 {order.status === 0 && (
                   <Button
@@ -371,6 +387,20 @@ export default function OrdersPage() {
                   disabled={processingOrders[order.id]}
                 >
                   取消订单
+                </Button>
+              </div>
+            )}
+
+            {(order.status === 5) && (
+              <div className="grid grid-cols-1 gap-3 mt-4">
+                <Button
+                  block
+                  className="!bg-[#3B82F6] !text-white !rounded-lg !border-none !h-10"
+                  onClick={() => handleRefreshClick(order)}
+                  disabled={processingOrders[order.id]}
+                  loading={processingOrders[order.id]}
+                >
+                  刷新
                 </Button>
               </div>
             )}
