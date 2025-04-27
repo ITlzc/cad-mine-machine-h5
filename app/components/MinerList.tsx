@@ -54,7 +54,7 @@ function ExpandableText({ text, maxLines = 3 }: ExpandableTextProps) {
       <div
         ref={textRef}
         className={`text-gray-500 text-sm mt-1 ${!isExpanded ? 'overflow-hidden' : ''}`}
-        style={{ 
+        style={{
           maxHeight: !isExpanded ? `${maxLines * 1.5}em` : 'none',
           overflow: !isExpanded ? 'hidden' : 'visible'
         }}
@@ -73,7 +73,7 @@ function ExpandableText({ text, maxLines = 3 }: ExpandableTextProps) {
   )
 }
 
-export default function MinerList() {
+export default function MinerList({ discount }: { discount: number }) {
   const [miners, setMiners] = useState<Miner[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedMiner, setSelectedMiner] = useState<Miner | null>(null)
@@ -173,7 +173,7 @@ export default function MinerList() {
 
       // 等待交易被确认
       const receipt = await publicClient.waitForTransactionReceipt({ hash })
-      
+
       if (receipt.status === 'success') {
         // 确认支付
         const response_confirm: any = await minerService.confirmPayment(orderId)
@@ -311,12 +311,12 @@ export default function MinerList() {
       initialLoadingState[miner.id] = true
     })
     setImageLoading(initialLoadingState)
-    
+
     // 设置一个超时，确保即使图片加载事件没有触发，也会在合理时间内隐藏加载状态
     const timer = setTimeout(() => {
       setImageLoading({})
     }, 3000)
-    
+
     return () => clearTimeout(timer)
   }, [miners])
 
@@ -329,59 +329,68 @@ export default function MinerList() {
       <div className="space-y-4 p-3">
         {miners.map((miner) => (
           <div key={miner.id} className="bg-white p-4 rounded-xl shadow-[0_2px_12px_0_rgba(0,0,0,0.07)]">
-            <div className="flex space-x-4">
-              <div className="w-20 h-20 rounded-lg overflow-hidden relative">
-                <Swiper
-                  autoplay
-                  loop
-                  indicator={(total, current) => (
-                    <div className="absolute bottom-1 right-1 bg-black/30 rounded-full px-2 py-0.5 text-white text-xs">
-                      {current + 1}/{total}
-                    </div>
-                  )}
-                >
-                  {miner.detail_images?.length > 0 ? (
-                    miner.detail_images.map((image, index) => (
-                      <Swiper.Item key={index}>
-                        <Image
-                          src={image}
-                          alt={`${miner.title}-${index + 1}`}
-                          className="w-full h-full object-cover"
-                          fit="cover"
-                          loading="eager"
-                        />
-                      </Swiper.Item>
-                    ))
-                  ) : (
-                    <Swiper.Item>
+            {/* 轮播图区域 */}
+            <div className="w-full h-auto rounded-lg overflow-hidden mb-3">
+              <Swiper
+                autoplay
+                loop
+                indicator={(total, current) => (
+                  <div className="absolute bottom-1 right-1 bg-black/30 rounded-full px-2 py-0.5 text-white text-xs">
+                    {current + 1}/{total}
+                  </div>
+                )}
+              >
+                {miner.detail_images?.length > 0 ? (
+                  miner.detail_images.map((image, index) => (
+                    <Swiper.Item key={index}>
                       <Image
-                        src={miner.image}
-                        alt={miner.title}
+                        src={image}
+                        alt={`${miner.title}-${index + 1}`}
                         className="w-full h-full object-cover"
                         fit="cover"
-                        loading="lazy"
+                        loading="eager"
                       />
                     </Swiper.Item>
-                  )}
-                </Swiper>
+                  ))
+                ) : (
+                  <Swiper.Item>
+                    <Image
+                      src={miner.image}
+                      alt={miner.title}
+                      className="w-full h-full object-cover"
+                      fit="cover"
+                      loading="lazy"
+                    />
+                  </Swiper.Item>
+                )}
+              </Swiper>
+            </div>
+            {/* 内容区 */}
+            <div className="flex flex-col justify-between">
+              <div>
+                <h3 className="text-base font-medium mb-1">{miner.title}</h3>
+                <ExpandableText text={miner.description} />
               </div>
-              <div className="flex-1 flex flex-col justify-between">
-                <div>
-                  <h3 className="text-base font-medium">{miner.title}</h3>
-                  <ExpandableText text={miner.description} />
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-[#F5B544] text-lg">
-                    ${miner.price} U
-                  </span>
-                  <Button
-                    className="!bg-[#F5B544] !text-white rounded-full px-6 shadow-[0_2px_8px_0_rgba(245,181,68,0.35)]"
-                    size="small"
-                    onClick={() => handleBuyClick(miner)}
-                  >
-                    立即购买
-                  </Button>
-                </div>
+              <div className="flex items-center justify-between mt-3">
+                {discount ? (
+                  <div className="flex flex-col items-start">
+                    <span className="text-sm text-gray-400 line-through">
+                      原价：${miner.price} U
+                    </span>
+                    <span className="text-lg font-bold text-[#F5B544]">
+                      ${(miner.price * (discount))} U
+                    </span>
+                  </div>
+                ) : <span className="text-[#F5B544] text-lg">
+                  ${miner.price} U
+                </span>}
+                <Button
+                  className="!bg-[#F5B544] !text-white rounded-full px-6 shadow-[0_2px_8px_0_rgba(245,181,68,0.35)]"
+                  size="small"
+                  onClick={() => handleBuyClick(miner)}
+                >
+                  立即购买
+                </Button>
               </div>
             </div>
           </div>
@@ -393,6 +402,7 @@ export default function MinerList() {
           visible={showBuyForm}
           onClose={() => setShowBuyForm(false)}
           onSubmit={handleSubmit}
+          discount={discount}
           miner={selectedMiner}
         />
       )}

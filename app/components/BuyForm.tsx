@@ -54,9 +54,10 @@ interface Props {
     price: number
     MPQ: number
   }
+  discount: number
 }
 
-export default function BuyForm({ visible, onClose, onSubmit, miner }: Props) {
+export default function BuyForm({ visible, onClose, onSubmit, miner, discount }: Props) {
   const [form] = Form.useForm()
   const [pools, setPools] = useState<Pool[]>([])
   const [loading, setLoading] = useState(false)
@@ -101,29 +102,6 @@ export default function BuyForm({ visible, onClose, onSubmit, miner }: Props) {
       setLoading(false)
     }
   }
-
-  const countryCodes = [
-    { label: '中国大陆 +86', value: '+86' },
-    { label: '中国香港 +852', value: '+852' },
-    { label: '中国澳门 +853', value: '+853' },
-    { label: '中国台湾 +886', value: '+886' },
-    { label: '日本 +81', value: '+81' },
-    { label: '韩国 +82', value: '+82' },
-    { label: '新加坡 +65', value: '+65' },
-    { label: '马来西亚 +60', value: '+60' },
-    { label: '越南 +84', value: '+84' },
-    { label: '泰国 +66', value: '+66' },
-    { label: '美国/加拿大 +1', value: '+1' },
-    { label: '英国 +44', value: '+44' },
-    { label: '澳大利亚 +61', value: '+61' },
-    { label: '新西兰 +64', value: '+64' },
-    { label: '德国 +49', value: '+49' },
-    { label: '法国 +33', value: '+33' },
-    { label: '意大利 +39', value: '+39' },
-    { label: '俄罗斯 +7', value: '+7' },
-    { label: '印度 +91', value: '+91' },
-    { label: '阿联酋 +971', value: '+971' },
-  ]
 
   const handleSubmit = async () => {
     try {
@@ -170,7 +148,18 @@ export default function BuyForm({ visible, onClose, onSubmit, miner }: Props) {
               <h3 className="text-base flex max-w-[90%] font-medium">{miner.title}</h3>
               {/* <ExpandableText text={miner.description} /> */}
               <div className="text-[#F5B544] text-lg mt-2">
-                ${miner.price} U
+                {discount ? (
+                  <div className="flex flex-col items-start">
+                    <span className="text-sm text-gray-400 line-through">
+                      原价：${miner.price} U
+                    </span>
+                    <span className="text-base font-bold text-[#F5B544]">
+                      ${miner.price * (discount)} U
+                    </span>
+                  </div>
+                ) : <span className="text-base font-bold text-[#F5B544]">
+                  ${miner.price} U
+                </span>}
               </div>
             </div>
           </div>

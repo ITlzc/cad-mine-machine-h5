@@ -6,10 +6,12 @@ import WalletModal from './components/WalletModal'
 import { userService } from './services/user-service'
 import { Toast } from 'antd-mobile'
 import { getCurrentUser } from './utils/supabase_lib'
-
+import { minerService } from './services/miner-service'
 export default function Home() {
   const [showWalletModal, setShowWalletModal] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [userEmail, setUserEmail] = useState('')
+  const [discount, setDiscount] = useState(0)
 
   const handleBindWallet = async (address: string) => {
     try {
@@ -48,6 +50,19 @@ export default function Home() {
           if (userInfo && userInfo?.user && !userInfo?.user.wallet_address) {
             setShowWalletModal(true)
           }
+
+          if (user_data?.email) {
+            setUserEmail(user_data.email)
+            try {
+              const discountData: any = await minerService.getDiscount(user_data.email)
+              console.log('折扣信息:', discountData)
+              if (discountData?.discount) {
+                setDiscount(discountData.discount)
+              }
+            } catch (error) {
+              console.error('获取折扣信息失败:', error)
+            }
+          }
         }
       } catch (error) {
         console.error('获取用户信息失败:', error)
@@ -61,7 +76,7 @@ export default function Home() {
     //min-h-screen 高度减去tabbar的高度 
     <main className=" flex flex-col">
       <div className="flex-1 overflow-auto pb-20">
-        <MinerList />
+        <MinerList discount={discount} />
       </div>
 
       <WalletModal

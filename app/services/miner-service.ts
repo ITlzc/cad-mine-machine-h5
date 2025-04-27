@@ -24,5 +24,9 @@ export const minerService = {
   // 确认支付
   confirmPayment: (id: string) => {
     return apiClient.post(`/orders/confirm-payment`, {id})
+  },
+
+  async getDiscount(email: string) {
+    return await apiClient.get(`/shop/discount?email=${email}`)
   }
 } 
