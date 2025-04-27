@@ -263,6 +263,7 @@ export default function OrdersPage() {
         setCurrentOrder({
           ...order,
           payment_address: order.payment_address,
+          amount: order.amount
         })
         setShowPaymentModal(true)
         setProcessingOrders(prev => ({ ...prev, [order.id]: false }))
@@ -416,6 +417,7 @@ export default function OrdersPage() {
         onClose={() => setShowPaymentModal(false)}
         paymentAddress={currentOrder?.payment_address || ''}
         expiration_time={currentOrder?.expiration_time || ''}
+        minAmount={currentOrder?.amount || 1}
       />
 
     </div>

@@ -36,23 +36,29 @@ function ExpandableText({ text, maxLines = 3 }: ExpandableTextProps) {
 
   useEffect(() => {
     if (textRef.current) {
-      const element = textRef.current
-      // 检查内容是否超出指定的行数
-      const lineHeight = parseInt(window.getComputedStyle(element).lineHeight)
-      const height = element.scrollHeight
-      const maxHeight = lineHeight * maxLines
-
-      setIsOverflow(height > maxHeight)
+      const element = textRef.current;
+      // 使用更兼容的方式检查内容是否溢出
+      const isTextOverflow = element.scrollHeight > element.clientHeight;
+      setIsOverflow(isTextOverflow);
     }
-  }, [text, maxLines])
+  }, [text, maxLines]);
+
+  // 安全地处理HTML内容
+  const createMarkup = (htmlContent: string) => {
+    return { __html: htmlContent };
+  };
 
   return (
     <div className="relative">
       <div
         ref={textRef}
-        className={`text-gray-500 text-sm mt-1 ${!isExpanded ? 'line-clamp-3' : ''}`}
+        className={`text-gray-500 text-sm mt-1 ${!isExpanded ? 'overflow-hidden' : ''}`}
+        style={{ 
+          maxHeight: !isExpanded ? `${maxLines * 1.5}em` : 'none',
+          overflow: !isExpanded ? 'hidden' : 'visible'
+        }}
       >
-        <div dangerouslySetInnerHTML={{ __html: text }} />
+        <div dangerouslySetInnerHTML={createMarkup(text)} />
       </div>
       {isOverflow && (
         <button
@@ -75,6 +81,7 @@ export default function MinerList() {
   const [paymentInfo, setPaymentInfo] = useState<{
     address: string;
     id: string;
+    amount: number;
   } | null>(null)
 
   const { writeContractAsync } = useWriteContract()
@@ -212,7 +219,8 @@ export default function MinerList() {
         // 保存支付信息
         setPaymentInfo({
           address: response.payment_address,
-          id: response.id
+          id: response.id,
+          amount: response.amount
         })
 
         // setShowPaymentModal(true)
@@ -338,6 +346,7 @@ export default function MinerList() {
         isOpen={showPaymentModal}
         onClose={() => setShowPaymentModal(false)}
         paymentAddress={paymentInfo?.address || ''}
+        minAmount={paymentInfo?.amount || 0}
         expiration_time={selectedMiner?.expiration_time || ''}
       />
     </>

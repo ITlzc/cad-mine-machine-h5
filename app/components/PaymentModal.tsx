@@ -12,42 +12,44 @@ interface PaymentModalProps {
   onClose: () => void
   paymentAddress: string
   expiration_time?: string
+  minAmount?: number
 }
 
 export default function PaymentModal({
   isOpen,
   onClose,
   paymentAddress,
-  expiration_time = ''
+  expiration_time = '',
+  minAmount = 0.00000001,
 }: PaymentModalProps) {
   const [countdown, setCountdown] = useState('23:59:59')
 
-  useEffect(() => {
-    // 设置倒计时
-    const endTime = expiration_time ? new Date(expiration_time).getTime() : new Date().getTime() + 24 * 60 * 60 * 1000 // 24小时
+  // useEffect(() => {
+  //   // 设置倒计时
+  //   const endTime = expiration_time ? new Date(expiration_time).getTime() : new Date().getTime() + 24 * 60 * 60 * 1000 // 24小时
 
-    const timer = setInterval(() => {
-      const now = new Date().getTime()
-      const distance = endTime - now
+  //   const timer = setInterval(() => {
+  //     const now = new Date().getTime()
+  //     const distance = endTime - now
 
-      const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
-      const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60))
-      const seconds = Math.floor((distance % (1000 * 60)) / 1000)
+  //     const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+  //     const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60))
+  //     const seconds = Math.floor((distance % (1000 * 60)) / 1000)
 
-      setCountdown(`${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`)
+  //     setCountdown(`${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`)
 
-      if (distance < 0) {
-        clearInterval(timer)
-        setCountdown('00:00:00')
-      }
-    }, 1000)
+  //     if (distance < 0) {
+  //       clearInterval(timer)
+  //       setCountdown('00:00:00')
+  //     }
+  //   }, 1000)
 
-    if (!isOpen) {
-      clearInterval(timer)
-    }
+  //   if (!isOpen) {
+  //     clearInterval(timer)
+  //   }
 
-    return () => clearInterval(timer)
-  }, [isOpen])
+  //   return () => clearInterval(timer)
+  // }, [isOpen])
 
   const handleCopyAddress = () => {
     navigator.clipboard.writeText(paymentAddress)
@@ -59,8 +61,8 @@ export default function PaymentModal({
       visible={isOpen}
       onMaskClick={onClose}
       position="bottom"
-      bodyStyle={{ 
-        height: '90%', 
+      bodyStyle={{
+        height: '90%',
         overflowY: 'auto',
         paddingBottom: 'env(safe-area-inset-bottom)'
       }}
@@ -75,19 +77,23 @@ export default function PaymentModal({
         </div>
 
         {/* 支付信息 */}
-        <div className="flex-1 overflow-auto px-4 py-6">
-          <div className="flex flex-col items-center mb-8">
+        <div className="flex-1 overflow-auto px-4 py-4">
+          <div className="flex flex-col justify-between items-center mb-2">
+            <div className="text-sm text-gray-500">网络</div>
+            <div className="text-sm">Binance Smart Chain</div>
+          </div>
+
+          <div className="flex flex-col items-center mb-2">
             <QRCodeSVG
               value={paymentAddress}
               size={180}
               level="H"
               includeMargin
-              className="mb-4"
             />
             <div className="text-sm text-gray-500">扫码支付</div>
           </div>
 
-          <div className="mb-6 bg-gray-50 rounded-lg p-3">
+          <div className="mb-6 bg-gray-50 rounded-lg p-2">
             <div className="flex justify-between">
               <div className="text-sm text-gray-500 mb-2">钱包地址</div>
               <button
@@ -101,7 +107,18 @@ export default function PaymentModal({
             <div className="break-all text-sm rounded-lg py-3 mb-2">
               {paymentAddress}
             </div>
+          </div>
 
+          {/* 交易信息 */}
+          <div className="space-y-4 mb-6">
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-500">最小充币额</span>
+              <span className="text-sm">{minAmount} USDT</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-500">充币到账时间</span>
+              <span className="text-sm">约 7 分钟</span>
+            </div>
           </div>
 
           <div className="bg-[#FFF9F0] p-4 rounded-lg text-sm text-[#F5B544]">

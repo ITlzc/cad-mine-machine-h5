@@ -28,6 +28,7 @@ export default function RootLayout({
       <head>
         <title>Cad Mine Machine</title>
         <meta name="description" content="EpochMine是专业的矿机销售平台，提供高性能矿机、专业级矿机和旗舰级矿机等产品。" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
         {/* <meta name="keywords" content="矿机,挖矿,比特币,以太坊,加密货币" /> */}
         <link
           rel="stylesheet"

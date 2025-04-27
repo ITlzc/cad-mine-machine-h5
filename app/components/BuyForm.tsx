@@ -6,6 +6,9 @@ import { useState, useEffect } from 'react'
 import { minerService } from '../services/miner-service'
 import { Toast } from 'antd-mobile'
 import Loading from '../components/Loading'
+import { PhoneInput } from 'react-international-phone';
+import { PhoneNumberUtil } from 'google-libphonenumber'
+import 'react-international-phone/style.css'
 
 interface Pool {
   id: string
@@ -62,6 +65,17 @@ export default function BuyForm({ visible, onClose, onSubmit, miner }: Props) {
   const [showCountryPicker, setShowCountryPicker] = useState(false)
   const [selectedPool, setSelectedPool] = useState<Pool | null>(null)
   const [showPoolPicker, setShowPoolPicker] = useState(false)
+  const [phoneNumber, setPhoneNumber] = useState('')
+
+  const phoneUtil = PhoneNumberUtil.getInstance();
+
+  const isPhoneValid = (phone: string) => {
+    try {
+      return phoneUtil.isValidNumber(phoneUtil.parseAndKeepRawInput(phone));
+    } catch (error) {
+      return false;
+    }
+  };
 
   useEffect(() => {
     if (visible) {
@@ -115,8 +129,8 @@ export default function BuyForm({ visible, onClose, onSubmit, miner }: Props) {
     try {
       const values = await form.validateFields()
       setSubmitting(true)
-      // 添加国家/地区编号到手机号
-      values.phone = `${selectedCountryCode}${values.phone}`
+      // 使用完整的国际格式手机号
+      values.phone = phoneNumber
       await onSubmit(values)
     } catch (error) {
       console.log(error)
@@ -125,13 +139,14 @@ export default function BuyForm({ visible, onClose, onSubmit, miner }: Props) {
     }
   }
 
+
   return (
     <Popup
       visible={visible}
       onMaskClick={onClose}
       position="bottom"
-      bodyStyle={{ 
-        height: '90%', 
+      bodyStyle={{
+        height: '90%',
         overflowY: 'auto',
         paddingBottom: 'env(safe-area-inset-bottom)'
       }}
@@ -171,6 +186,9 @@ export default function BuyForm({ visible, onClose, onSubmit, miner }: Props) {
             initialValues={{
               MPQ: miner.MPQ,
             }}
+            style={{
+              '--prefix-width': '5.5em'
+            } as any}
             footer={
               <Button
                 block
@@ -192,7 +210,7 @@ export default function BuyForm({ visible, onClose, onSubmit, miner }: Props) {
                   name="poolId"
                   label="选择矿池"
                   rules={[{ required: true, message: '请选择矿池' }]}
-                  className="!text-base"
+                  className="!text-base adm-form-item-horizontal"
                 >
                   <div
                     className="px-3 py-2 border rounded-lg cursor-pointer text-sm flex justify-between items-center"
@@ -209,8 +227,8 @@ export default function BuyForm({ visible, onClose, onSubmit, miner }: Props) {
               visible={showPoolPicker}
               onMaskClick={() => setShowPoolPicker(false)}
               position="bottom"
-              bodyStyle={{ 
-                height: '80%', 
+              bodyStyle={{
+                height: '80%',
                 overflowY: 'auto',
                 paddingBottom: 'env(safe-area-inset-bottom)'
               }}
@@ -226,7 +244,7 @@ export default function BuyForm({ visible, onClose, onSubmit, miner }: Props) {
                 <div className="flex-1 overflow-y-auto p-4">
                   <div className="space-y-4">
                     {loading ? <Loading /> : pools.map(pool => (
-                      <div 
+                      <div
                         key={pool.id}
                         className={`p-3 border rounded-lg cursor-pointer ${selectedPool?.id === pool.id ? 'border-[#F5B544] bg-[#FFF9E8]' : 'border-gray-200'}`}
                         onClick={() => {
@@ -262,7 +280,7 @@ export default function BuyForm({ visible, onClose, onSubmit, miner }: Props) {
               label="购买数量"
               rules={[
                 { required: true, message: '请输入购买数量' },
-                { 
+                {
                   validator: (_, value) => {
                     if (value < miner.MPQ) {
                       return Promise.reject(`${miner.MPQ}台起订`)
@@ -272,7 +290,7 @@ export default function BuyForm({ visible, onClose, onSubmit, miner }: Props) {
                 }
               ]}
               initialValue={miner.MPQ}
-              className="!text-base"
+              className="!text-base adm-form-item-horizontal"
             >
               <Stepper
                 min={miner.MPQ}
@@ -288,7 +306,7 @@ export default function BuyForm({ visible, onClose, onSubmit, miner }: Props) {
               name="receiver"
               label="收货人"
               rules={[{ required: true, message: '请输入收货人姓名' }]}
-              className="!text-base !placeholder:text-xs"
+              className="!text-base adm-form-item-horizontal"
             >
               <Input placeholder="请填写收货人姓名" className="!text-sm !placeholder:text-xs" />
             </Form.Item>
@@ -297,123 +315,50 @@ export default function BuyForm({ visible, onClose, onSubmit, miner }: Props) {
               name="phone"
               label="手机号码"
               rules={[
-                { required: true, message: '请输入正确的手机号码' },
-                { 
+                { required: true, message: '请输入手机号码' },
+                {
                   validator: (_, value) => {
-                    if (selectedCountryCode === '+86' && !/^1[3-9]\d{9}$/.test(value)) {
-                      return Promise.reject('')
-                    }
-                    if (selectedCountryCode === '+852' && !/^[5-9]\d{7}$/.test(value)) {
-                      return Promise.reject('请输入正确的中国香港手机号码')
-                    }
-                    if (selectedCountryCode === '+853' && !/^[6]\d{7}$/.test(value)) {
-                      return Promise.reject('请输入正确的中国澳门手机号码')
-                    }
-                    if (selectedCountryCode === '+886' && !/^[0-9]{9}$/.test(value)) {
-                      return Promise.reject('请输入正确的中国台湾手机号码')
-                    }
-                    if (selectedCountryCode === '+81' && !/^[0-9]{10,11}$/.test(value)) {
-                      return Promise.reject('请输入正确的日本手机号码')
-                    }
-                    if (selectedCountryCode === '+82' && !/^[0-9]{9,10}$/.test(value)) {
-                      return Promise.reject('请输入正确的韩国手机号码')
-                    }
-                    if (selectedCountryCode === '+65' && !/^[8-9]\d{7}$/.test(value)) {
-                      return Promise.reject('请输入正确的新加坡手机号码')
-                    }
-                    if (selectedCountryCode === '+60' && !/^1[0-9]{8,9}$/.test(value)) {
-                      return Promise.reject('请输入正确的马来西亚手机号码')
-                    }
-                    if (selectedCountryCode === '+84' && !/^[0-9]{9,10}$/.test(value)) {
-                      return Promise.reject('请输入正确的越南手机号码')
-                    }
-                    if (selectedCountryCode === '+66' && !/^[0-9]{9}$/.test(value)) {
-                      return Promise.reject('请输入正确的泰国手机号码')
-                    }
-                    if (selectedCountryCode === '+1' && !/^[0-9]{10}$/.test(value)) {
-                      return Promise.reject('请输入正确的美国/加拿大手机号码')
-                    }
-                    if (selectedCountryCode === '+44' && !/^[0-9]{10}$/.test(value)) {
-                      return Promise.reject('请输入正确的英国手机号码')
-                    }
-                    if (selectedCountryCode === '+61' && !/^[0-9]{9}$/.test(value)) {
-                      return Promise.reject('请输入正确的澳大利亚手机号码')
-                    }
-                    if (selectedCountryCode === '+64' && !/^[0-9]{9,10}$/.test(value)) {
-                      return Promise.reject('请输入正确的新西兰手机号码')
-                    }
-                    if (selectedCountryCode === '+49' && !/^[0-9]{10,11}$/.test(value)) {
-                      return Promise.reject('请输入正确的德国手机号码')
-                    }
-                    if (selectedCountryCode === '+33' && !/^[0-9]{9}$/.test(value)) {
-                      return Promise.reject('请输入正确的法国手机号码')
-                    }
-                    if (selectedCountryCode === '+39' && !/^[0-9]{10,11}$/.test(value)) {
-                      return Promise.reject('请输入正确的意大利手机号码')
-                    }
-                    if (selectedCountryCode === '+7' && !/^[0-9]{10}$/.test(value)) {
-                      return Promise.reject('请输入正确的俄罗斯手机号码')
-                    }
-                    if (selectedCountryCode === '+91' && !/^[0-9]{10}$/.test(value)) {
-                      return Promise.reject('请输入正确的印度手机号码')
-                    }
-                    if (selectedCountryCode === '+971' && !/^[0-9]{9}$/.test(value)) {
-                      return Promise.reject('请输入正确的阿联酋手机号码')
+                    if (!phoneNumber || !isPhoneValid(phoneNumber)) {
+                      return Promise.reject('请输入有效的手机号码')
                     }
                     return Promise.resolve()
                   }
                 }
               ]}
-              className="!text-base"
+              className="!text-base adm-form-item-horizontal"
             >
-              <div className="flex items-center space-x-2">
-                <div
-                  className="px-3 py-2 border rounded-lg cursor-pointer text-sm"
-                  onClick={() => setShowCountryPicker(true)}
-                >
-                  {selectedCountryCode}
-                </div>
-                <Input placeholder="请填写手机号码" type="tel" className="!text-sm !placeholder:text-xs" />
+              <div className="w-full">
+                <PhoneInput
+                  defaultCountry="cn"
+                  value={phoneNumber}
+                  onChange={(phone) => setPhoneNumber(phone)}
+                  inputClassName="!text-[16px] !leading-[16px] !w-full !h-[40px] !px-3 !py-2 !border !border-gray-300 !rounded-lg"
+                  countrySelectorStyleProps={{
+                    buttonClassName: "!h-[40px] !px-3 !py-2 !border !border-gray-300 !rounded-lg !mr-2",
+                    dropdownStyleProps: {
+                      className: "!text-[16px]"
+                    }
+                  }}
+                  preferredCountries={['cn', 'hk', 'mo', 'tw', 'us', 'gb', 'jp', 'kr', 'sg']}
+                  inputProps={{
+                    autoComplete: "off",
+                    autoCorrect: "off",
+                    autoCapitalize: "off",
+                    spellCheck: "false",
+                    style: {
+                      fontSize: '16px',
+                      lineHeight: '16px'
+                    }
+                  }}
+                />
               </div>
             </Form.Item>
-
-            <Popup
-              visible={showCountryPicker}
-              onMaskClick={() => setShowCountryPicker(false)}
-              position="bottom"
-              bodyStyle={{ 
-                height: '80%', 
-                overflowY: 'auto',
-                paddingBottom: 'env(safe-area-inset-bottom)'
-              }}
-            >
-              <div className="flex flex-col h-full">
-                <div className="flex justify-between items-center p-4 border-b">
-                  <div className="text-lg font-medium">选择国家/地区</div>
-                  <CloseOutline
-                    className="text-gray-500 text-xl"
-                    onClick={() => setShowCountryPicker(false)}
-                  />
-                </div>
-                <div className="flex-1 overflow-y-auto p-4">
-                  <Selector
-                    columns={1}
-                    options={countryCodes}
-                    value={[selectedCountryCode]}
-                    onChange={(arr) => {
-                      setSelectedCountryCode(arr[0])
-                      setShowCountryPicker(false)
-                    }}
-                  />
-                </div>
-              </div>
-            </Popup>
 
             <Form.Item
               name="address"
               label="收货地址"
               rules={[{ required: true, message: '请输入详细地址' }]}
-              className="!text-base"
+              className="!text-base adm-form-item-horizontal"
             >
               <TextArea
                 placeholder="请填写详细地址"
@@ -427,7 +372,7 @@ export default function BuyForm({ visible, onClose, onSubmit, miner }: Props) {
               rules={[
                 { pattern: /^[0-9]{6}$/, message: '请输入正确的邮政编码' }
               ]}
-              className="!text-base"
+              className="!text-base adm-form-item-horizontal"
             >
               <Input placeholder="请填写邮政编码" className="!text-sm placeholder:text-xs" />
             </Form.Item>
