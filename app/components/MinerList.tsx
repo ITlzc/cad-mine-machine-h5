@@ -1,6 +1,6 @@
 'use client'
 
-import { Card, Image, Button } from 'antd-mobile'
+import { Card, Image, Button, Swiper, SpinLoading } from 'antd-mobile'
 import { useState, useEffect, useRef } from 'react'
 import { minerService } from '../services/miner-service'
 import Loading from './Loading'
@@ -18,6 +18,7 @@ interface Miner {
   title: string
   price: number
   image: string
+  detail_images: string[]
   description: string
   payment_address: string
   expiration_time: string
@@ -83,6 +84,7 @@ export default function MinerList() {
     id: string;
     amount: number;
   } | null>(null)
+  const [imageLoading, setImageLoading] = useState<Record<string, boolean>>({})
 
   const { writeContractAsync } = useWriteContract()
   const { address, isConnected } = useAccount()
@@ -288,6 +290,36 @@ export default function MinerList() {
     }
   }
 
+  const handleImageLoad = (minerId: string) => {
+    setImageLoading(prev => ({
+      ...prev,
+      [minerId]: false
+    }))
+  }
+
+  const handleImageError = (minerId: string) => {
+    setImageLoading(prev => ({
+      ...prev,
+      [minerId]: false
+    }))
+  }
+
+  // 在组件挂载时设置所有图片为加载状态
+  useEffect(() => {
+    const initialLoadingState: Record<string, boolean> = {}
+    miners.forEach(miner => {
+      initialLoadingState[miner.id] = true
+    })
+    setImageLoading(initialLoadingState)
+    
+    // 设置一个超时，确保即使图片加载事件没有触发，也会在合理时间内隐藏加载状态
+    const timer = setTimeout(() => {
+      setImageLoading({})
+    }, 3000)
+    
+    return () => clearTimeout(timer)
+  }, [miners])
+
   if (loading) {
     return <Loading />
   }
@@ -298,22 +330,45 @@ export default function MinerList() {
         {miners.map((miner) => (
           <div key={miner.id} className="bg-white p-4 rounded-xl shadow-[0_2px_12px_0_rgba(0,0,0,0.07)]">
             <div className="flex space-x-4">
-              <img
-                src={miner.image}
-                alt={miner.title}
-                className="w-20 h-20 object-cover rounded-lg"
-              />
+              <div className="w-20 h-20 rounded-lg overflow-hidden relative">
+                <Swiper
+                  autoplay
+                  loop
+                  indicator={(total, current) => (
+                    <div className="absolute bottom-1 right-1 bg-black/30 rounded-full px-2 py-0.5 text-white text-xs">
+                      {current + 1}/{total}
+                    </div>
+                  )}
+                >
+                  {miner.detail_images?.length > 0 ? (
+                    miner.detail_images.map((image, index) => (
+                      <Swiper.Item key={index}>
+                        <Image
+                          src={image}
+                          alt={`${miner.title}-${index + 1}`}
+                          className="w-full h-full object-cover"
+                          fit="cover"
+                          loading="eager"
+                        />
+                      </Swiper.Item>
+                    ))
+                  ) : (
+                    <Swiper.Item>
+                      <Image
+                        src={miner.image}
+                        alt={miner.title}
+                        className="w-full h-full object-cover"
+                        fit="cover"
+                        loading="lazy"
+                      />
+                    </Swiper.Item>
+                  )}
+                </Swiper>
+              </div>
               <div className="flex-1 flex flex-col justify-between">
                 <div>
                   <h3 className="text-base font-medium">{miner.title}</h3>
                   <ExpandableText text={miner.description} />
-                  {/* <div className="relative">
-                    <p
-                      className={`text-gray-500 text-sm mt-1`}
-                    >
-                      <div dangerouslySetInnerHTML={{ __html: miner.description }} />
-                    </p>
-                  </div> */}
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-[#F5B544] text-lg">

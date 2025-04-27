@@ -76,7 +76,7 @@ const Header: React.FC = () => {
           <Link href="/">
             <div className="flex items-center">
               <Image
-                src="/images/logo.svg"
+                src="/images/logo.jpeg"
                 alt="EpochMine"
                 width={32}
                 height={32}
