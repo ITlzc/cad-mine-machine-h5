@@ -372,7 +372,7 @@ export default function MinerList({ discount }: { discount: number }) {
                 <ExpandableText text={miner.description} />
               </div>
               <div className="flex items-center justify-between mt-3">
-                {discount ? (
+                {discount && Number(discount) > 0 && Number(discount) < 1 ? (
                   <div className="flex flex-col items-start">
                     <span className="text-sm text-gray-400 line-through">
                       原价：${miner.price} U

@@ -148,7 +148,7 @@ export default function BuyForm({ visible, onClose, onSubmit, miner, discount }:
               <h3 className="text-base flex max-w-[90%] font-medium">{miner.title}</h3>
               {/* <ExpandableText text={miner.description} /> */}
               <div className="text-[#F5B544] text-lg mt-2">
-                {discount ? (
+                {discount && Number(discount) > 0 && Number(discount) < 1 ? (
                   <div className="flex flex-col items-start">
                     <span className="text-sm text-gray-400 line-through">
                       原价：${miner.price} U
