@@ -15,5 +15,15 @@ export const orderService = {
   // 取消订单
   cancelOrder: (id: string) => {
     return apiClient.post(`/orders/cancel/`, { id })
+  },
+
+  // 获取订单详情
+  orderDetail: (id: string) => {
+    return apiClient.get(`/orders/detail/${id}`)
+  },
+
+  // 更新订单状态
+  updateOrderStatus: (id: string, status: number) => {
+    return apiClient.post(`/orders/update-shipping-status`, { id, status })
   }
 } 

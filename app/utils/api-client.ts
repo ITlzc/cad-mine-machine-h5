@@ -4,7 +4,8 @@ import { Toast } from 'antd-mobile'
 interface ApiResponse<T = any> {
   code: number
   data: T
-  message: string
+  message: string,
+  msg: string
 }
 
 interface RequestConfig extends RequestInit {
@@ -45,7 +46,12 @@ class ApiClient {
           break
         // ... 其他错误码处理
       }
-      throw new Error(data.message || '请求失败')
+      throw new Error(data.message || data.msg || '请求失败')
+    } else {
+      if (data.code != 200) {
+        console.log("handleResponse data",data);
+        throw new Error(data.message || data.msg || '请求失败')
+      }
     }
     
     return data.data

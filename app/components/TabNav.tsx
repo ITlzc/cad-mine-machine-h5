@@ -6,7 +6,7 @@ import clsx from 'clsx'
 
 const tabs = [
   { name: '矿机', href: '/', icon: 'fas fa-home' },
-  // { name: '列表', href: '/machines', icon: 'fas fa-list' },
+  { name: '列表', href: '/machines', icon: 'fas fa-list' },
   // { name: '收益', href: '/withdraw', icon: 'fas fa-chart-line' },
   { name: '订单', href: '/orders', icon: 'fas fa-file-alt' },
   { name: '我的', href: '/settings', icon: 'fas fa-user' },

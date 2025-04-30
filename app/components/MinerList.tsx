@@ -6,12 +6,13 @@ import { minerService } from '../services/miner-service'
 import Loading from './Loading'
 import BuyForm from './BuyForm'
 import PaymentModal from './PaymentModal'
-import { Toast } from 'antd-mobile'
+import { Toast, Dialog } from 'antd-mobile'
 import { toast } from 'react-hot-toast'
 import { useAccount, useWriteContract, usePublicClient } from 'wagmi'
 import { Bsc } from '../utils/bsc_config'
 import { useConnectModal } from '@rainbow-me/rainbowkit'
 import { useRouter } from 'next/navigation'
+
 
 interface Miner {
   id: string
@@ -73,7 +74,7 @@ function ExpandableText({ text, maxLines = 3 }: ExpandableTextProps) {
   )
 }
 
-export default function MinerList({ discount }: { discount: number }) {
+export default function MinerList({ discount, userInfo }: { discount: number, userInfo: any }) {
   const [miners, setMiners] = useState<Miner[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedMiner, setSelectedMiner] = useState<Miner | null>(null)
@@ -129,6 +130,14 @@ export default function MinerList({ discount }: { discount: number }) {
   }, [isConnected])
 
   const handleBuyClick = (miner: Miner) => {
+    if(userInfo.role === 0){
+      Dialog.alert({
+        title: '提示',
+        content: '请向代理商购买',
+      })
+      
+      return
+    }
     setSelectedMiner(miner)
     setShowBuyForm(true)
   }

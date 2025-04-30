@@ -14,6 +14,10 @@ import { toast } from 'react-hot-toast'
 import { useAccount, useWriteContract, usePublicClient } from 'wagmi'
 import { Bsc } from '../utils/bsc_config'
 import { useConnectModal } from '@rainbow-me/rainbowkit'
+import Link from 'next/link'
+import OrderDetailModal from '../components/OrderDetailModal'
+import { getCurrentUser } from '../utils/supabase_lib'
+import { userService } from '../services/user-service'
 
 interface Order {
   orderId: string
@@ -57,7 +61,22 @@ export default function OrdersPage() {
     orderId: string;
   } | null>(null)
 
+  const [showOrderDetailModal, setShowOrderDetailModal] = useState(false)
+  const [userInfo, setUserInfo] = useState<any>(null)
+  const [selectedOrder, setSelectedOrder] = useState<any>(null)
+  const [scrollPosition, setScrollPosition] = useState(0)
+
   useEffect(() => {
+    async function getUserInfo() {
+      const { user: user_data, error } = await getCurrentUser();
+      if (error) {
+        console.error('获取用户信息失败:', error)
+      } else {
+        const userInfo: any = await userService.getUserInfo(user_data?.id)
+        setUserInfo(userInfo?.user)
+      }
+    }
+    getUserInfo()
     fetchOrders()
   }, [])
 
@@ -73,14 +92,24 @@ export default function OrdersPage() {
     }
   }, [isConnected])
 
-  const fetchOrders = async (isLoadMore = false) => {
+  useEffect(() => {
+    if (showOrderDetailModal) {
+      setScrollPosition(window.scrollY)
+    } else {
+      setTimeout(() => {
+        window.scrollTo(0, scrollPosition)
+      }, 100)
+    }
+  }, [showOrderDetailModal])
+
+  const fetchOrders = async (isLoadMore = false, currentPage = 1) => {
     try {
       if (!isLoadMore) {
         setLoading(true)
       }
       
       const data: any = await orderService.orderList({
-        page,
+        page: currentPage,
         pageSize,
         orderNo: searchValue
       })
@@ -94,15 +123,15 @@ export default function OrdersPage() {
       setHasMore(data.records?.length === pageSize)
     } catch (error) {
       console.error('Failed to fetch orders:', error)
-
     } finally {
       setLoading(false)
     }
   }
 
   const loadMore = async () => {
-    setPage(prev => prev + 1)
-    await fetchOrders(true)
+    const nextPage = page + 1
+    setPage(nextPage)
+    await fetchOrders(true, nextPage)
   }
 
   const handleSearch = () => {
@@ -305,6 +334,16 @@ export default function OrdersPage() {
         return <span className="text-red-600 bg-red-50 px-2 py-1 rounded">支付失败</span>
       case 5:
         return <span className="text-yellow-600 bg-yellow-50 px-2 py-1 rounded">待验证</span>
+      case 6:
+          return <span className="text-yellow-600 bg-yellow-50 px-2 py-1 rounded">机器准备中</span>
+      case 7:
+        return <span className="text-green-600 bg-green-50 px-2 py-1 rounded">机器已发货</span>
+      case 8:
+        return <span className="text-red-600 bg-red-50 px-2 py-1 rounded">机器已签收</span>
+      case 9:
+        return <span className="text-red-600 bg-red-50 px-2 py-1 rounded">机器待托管</span>
+      case 10:
+        return <span className="text-red-600 bg-red-50 px-2 py-1 rounded">机器已托管</span>
       default:
         return <span className="text-gray-600 bg-gray-50 px-2 py-1 rounded">未知状态</span>
     }
@@ -321,6 +360,11 @@ export default function OrdersPage() {
       default:
         return 'bg-gray-100 text-gray-600'
     }
+  }
+
+  const handleOrderDetail = (order: any) => {
+    setSelectedOrder(order)
+    setShowOrderDetailModal(true)
   }
 
   if (loading && !orders.length) {
@@ -364,8 +408,13 @@ export default function OrdersPage() {
               <div className="text-[#F5B544] font-medium">
                 支付金额： ${order.amount.toFixed(2)} U
               </div>
-              <div className={`rounded text-xs ${getStatusClass(order.status)}`}>
-                {getStatusTag(order.status)}
+              <div className="flex items-center gap-2">
+                <div className={`rounded text-xs ${getStatusClass(order.status)}`}>
+                  {getStatusTag(order.status)}
+                </div>
+                <Link href={'#'} onClick={() => handleOrderDetail(order)} className="text-xs text-[#3B82F6] hover:text-[#2563EB]">
+                  详情
+                </Link>
               </div>
             </div>
 
@@ -419,6 +468,15 @@ export default function OrdersPage() {
         expiration_time={currentOrder?.expiration_time || ''}
         minAmount={currentOrder?.amount || 1}
       />
+
+      {showOrderDetailModal && <OrderDetailModal
+        isOpen={showOrderDetailModal}
+        order={selectedOrder}
+        onBack={() => setShowOrderDetailModal(false)}
+        getStatusTag={getStatusTag}
+        userInfo={userInfo}
+        updataList={() => fetchOrders()}
+      />}
 
     </div>
   )

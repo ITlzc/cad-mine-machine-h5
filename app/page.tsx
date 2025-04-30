@@ -10,7 +10,7 @@ import { minerService } from './services/miner-service'
 export default function Home() {
   const [showWalletModal, setShowWalletModal] = useState(false)
   const [submitting, setSubmitting] = useState(false)
-  const [userEmail, setUserEmail] = useState('')
+  const [userInfoByFetch, setUserInfoByFetch] = useState(null)
   const [discount, setDiscount] = useState(0)
 
   const handleBindWallet = async (address: string) => {
@@ -47,12 +47,13 @@ export default function Home() {
         } else {
           const userInfo: any = await userService.getUserInfo(user_data?.id)
           console.log('用户信息:', userInfo, userInfo && userInfo?.user && !userInfo?.user.wallet_address)
+          setUserInfoByFetch(userInfo?.user)
+
           if (userInfo && userInfo?.user && !userInfo?.user.wallet_address) {
             setShowWalletModal(true)
           }
 
           if (user_data?.email) {
-            setUserEmail(user_data.email)
             try {
               const discountData: any = await minerService.getDiscount(user_data.email)
               console.log('折扣信息:', discountData)
@@ -76,7 +77,7 @@ export default function Home() {
     //min-h-screen 高度减去tabbar的高度 
     <main className=" flex flex-col">
       <div className="flex-1 overflow-auto pb-20">
-        <MinerList discount={discount} />
+        <MinerList discount={discount} userInfo={userInfoByFetch} />
       </div>
 
       <WalletModal

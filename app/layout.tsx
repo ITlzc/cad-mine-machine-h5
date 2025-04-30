@@ -13,7 +13,7 @@ import TabNav from './components/TabNav'
 const inter = Inter({ subsets: ['latin'] })
 
 // 定义不需要显示侧边栏和Tab的路由
-const noLayoutRoutes = ['/login/', '/register/', '/forgot-password/']
+const noLayoutRoutes = ['/login', '/register', '/forgot-password']
 
 export default function RootLayout({
   children,
