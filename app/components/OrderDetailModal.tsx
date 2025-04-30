@@ -113,7 +113,7 @@ export default function OrderDetailModal({
     <Popup
       visible={isOpen}
       onMaskClick={onBack}
-      position="top"
+      position="bottom"
       bodyStyle={{
         height: '100%',
         overflowY: 'auto',
@@ -124,19 +124,22 @@ export default function OrderDetailModal({
       <div className="flex flex-col min-h-screen bg-gray-50 relative pb-16">
         {/* 顶部导航栏 */}
         <div className="sticky top-0 z-10 w-full bg-white shadow-sm z-50">
-          <div className="flex justify-between items-center px-4 h-14">
+          <div className="flex relative justify-center items-center px-4 h-14">
+            <div className="flex items-center absolute right-4" onClick={() => {
+              setShowPicker(false)
+              setSelectedStatus('')
+              onBack()
+            }}>
+              <i className="fas fa-times text-gray-600 text-lg mr-2"></i>
+              {/* <span className="text-sm">关闭</span> */}
+            </div>
             <div className="flex items-center">
-              <i className="fas fa-arrow-left text-gray-600 text-lg mr-2" onClick={() => {
-                setShowPicker(false)
-                setSelectedStatus('')
-                onBack()
-              }}></i>
               <span className="text-lg">订单详情</span>
             </div>
           </div>
         </div>
         {/* 主要内容区域 */}
-        {loading ? <Loading /> : <div className="px-4 py-4">
+        {loading ? <Loading /> : <div className="px-4 py-2">
           {/* 订单信息 */}
           <div className="bg-white rounded-lg p-4 mb-4">
             <h2 className="text-base font-medium mb-3">订单信息</h2>
@@ -242,9 +245,9 @@ export default function OrderDetailModal({
               <div className="flex-1">
                 <h3 className="text-base font-medium">{orderDetail?.machine_info?.title || '-'}</h3>
                 <div
-                    className="text-sm text-gray-600 mt-1"
-                    dangerouslySetInnerHTML={{ __html: orderDetail?.machine_info?.description }}
-                  />
+                  className="text-sm text-gray-600 mt-1"
+                  dangerouslySetInnerHTML={{ __html: orderDetail?.machine_info?.description }}
+                />
               </div>
             </div>
           </div>
