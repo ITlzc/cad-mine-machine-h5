@@ -401,7 +401,7 @@ export default function OrdersPage() {
               <div className="text-sm">商品信息：{order.machine_info.title}</div>
               <div className="text-sm">矿池信息：{order.pool_info.name}</div>
               <div className="text-sm">创建时间：{moment(order.created_at).format('YYYY-MM-DD HH:mm:ss')}</div>
-              <div className="text-sm truncate">交易哈希：{order.status === 1 ? <a href={`https://bscscan.com/tx/${order.transaction_hash}`} target="_blank" rel="noopener noreferrer">{order.transaction_hash.slice(0, 6)}...{order.transaction_hash.slice(-4)}</a> : '-'}</div>
+              <div className="text-sm truncate">交易哈希：{order.status === 1 && order.transaction_hash ? <a href={`https://bscscan.com/tx/${order.transaction_hash}`} target="_blank" rel="noopener noreferrer">{order.transaction_hash.slice(0, 6)}...{order.transaction_hash.slice(-4)}</a> : '-'}</div>
             </div>
 
             <div className="flex justify-between items-center mb-3">
