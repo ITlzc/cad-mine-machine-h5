@@ -115,7 +115,7 @@ export default function OrderDetailModal({
       onMaskClick={onBack}
       position="bottom"
       bodyStyle={{
-        height: '100%',
+        height: '92%',
         overflowY: 'auto',
         paddingBottom: 'env(safe-area-inset-bottom)'
       }}
