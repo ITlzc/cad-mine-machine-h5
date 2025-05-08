@@ -89,10 +89,12 @@ export default function OrderDetailModal({
   }, [order])
 
   const getShippingStatusTag = (status: number) => {
-    if (status === 1) {
-      status = 6;
-    }
+    // if (status === 1) {
+    //   status = 6;
+    // }
     switch (status) {
+      case 1:
+        return <span className="text-yellow-600 bg-yellow-50 px-2 py-1 rounded">待分配机器</span>
       case 6:
         return <span className="text-yellow-600 bg-yellow-50 px-2 py-1 rounded">机器准备中</span>
       case 7:
