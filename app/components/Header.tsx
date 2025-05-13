@@ -2,7 +2,7 @@
 import Image from 'next/image';
 import Link from 'next/link'
 import { ChevronDownIcon, Cog6ToothIcon, ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline'
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { getCurrentUser, signOut } from '../utils/supabase_lib';
 import { ConnectButton } from '@rainbow-me/rainbowkit';

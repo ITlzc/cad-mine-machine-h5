@@ -9,13 +9,14 @@ import { Inter } from 'next/font/google'
 import { usePathname } from 'next/navigation'
 import Header from './components/Header'
 import TabNav from './components/TabNav'
+import { Suspense } from 'react'
 
 const inter = Inter({ subsets: ['latin'] })
 
 // 定义不需要显示侧边栏和Tab的路由
-const noLayoutRoutes = ['/login', '/register', '/forgot-password']
+const noLayoutRoutes = ['/login/', '/register/', '/forgot-password/']
 
-export default function RootLayout({
+function RootLayoutContent({
   children,
 }: {
   children: React.ReactNode
@@ -23,6 +24,29 @@ export default function RootLayout({
   const pathname = usePathname()
   const showLayout = !noLayoutRoutes.includes(pathname)
 
+  return (
+    <div className="min-h-screen bg-white">
+      {showLayout && <Header />}
+      <div className="flex flex-col">
+        <main className={`flex-1 ${showLayout ? 'md:px-4 md:pb-0' : ''}`}>
+          <AuthProvider>
+            <Suspense fallback={<div>加载中...</div>}>
+              {children}
+            </Suspense>
+            <Toaster position="top-right" />
+          </AuthProvider>
+        </main>
+        {showLayout && <TabNav />}
+      </div>
+    </div>
+  )
+}
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
   return (
     <html lang="en">
       <head>
@@ -38,18 +62,9 @@ export default function RootLayout({
       </head>
       <body className={inter.className}>
         <Providers>
-          <div className="min-h-screen bg-white">
-            {showLayout && <Header />}
-            <div className="flex flex-col">
-              <main className={`flex-1 ${showLayout ? 'md:px-4 md:pb-0' : ''}`}>
-                <AuthProvider>
-                  {children}
-                  <Toaster position="top-right" />
-                </AuthProvider>
-              </main>
-              {showLayout && <TabNav />}
-            </div>
-          </div>
+          <Suspense fallback={<div>加载中...</div>}>
+            <RootLayoutContent>{children}</RootLayoutContent>
+          </Suspense>
         </Providers>
       </body>
     </html>

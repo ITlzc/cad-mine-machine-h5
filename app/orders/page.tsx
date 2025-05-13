@@ -1,7 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import Image from 'next/image'
+import { useState, useEffect, Suspense } from 'react'
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline'
 import { minerService } from '../services/miner-service'
 import { orderService } from '../services/order-service'
@@ -19,25 +18,8 @@ import OrderDetailModal from '../components/OrderDetailModal'
 import { getCurrentUser } from '../utils/supabase_lib'
 import { userService } from '../services/user-service'
 
-interface Order {
-  orderId: string
-  productInfo: {
-    name: string
-    image: string
-    quantity: number
-  }
-  poolInfo: {
-    name: string
-    icon: string
-    description: string
-  } | null
-  amount: number
-  txHash: string
-  status: 'success' | 'pending' | 'cancelled'
-  createTime: string
-}
 
-export default function OrdersPage() {
+function OrdersPageContent() {
   const [orders, setOrders] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [searchValue, setSearchValue] = useState('')
@@ -481,3 +463,11 @@ export default function OrdersPage() {
     </div>
   )
 } 
+
+export default function OrdersPage() {
+  return (
+    <Suspense fallback={<Loading />}>
+      <OrdersPageContent />
+    </Suspense>
+  );
+}

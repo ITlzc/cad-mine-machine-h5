@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, Suspense } from 'react'
 import { SearchBar, InfiniteScroll } from 'antd-mobile'
 import { userService } from '../services/user-service'
 import { ClipboardDocumentIcon, CheckIcon, PlusIcon } from '@heroicons/react/24/outline'
@@ -24,7 +24,7 @@ interface MinerData {
   t_earn: number
 }
 
-export default function MachinePage() {
+function MachinePageContent() {
 
   const [searchTerm, setSearchTerm] = useState('')
   const [miners, setMiners] = useState<MinerData[]>([])
@@ -377,3 +377,11 @@ export default function MachinePage() {
     </div>
   )
 } 
+
+export default function MachinePage() {
+  return (
+    <Suspense fallback={<Loading />}>
+      <MachinePageContent />
+    </Suspense>
+  );
+}

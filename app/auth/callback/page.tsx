@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../providers/AuthProvider';
 import { get_access_token, supabase, updateUserReferralId, updateUserInviterCode } from '../../utils/supabase_lib';
 import { useNavigateWithParams } from '../../hooks/useNavigateWithParams';
+import Loading from '../../components/Loading';
 
-export default function AuthCallbackPage() {
+function AuthCallbackPageContent() {
   const router = useRouter();
   const { login } = useAuth();
   const navigateWithParams = useNavigateWithParams()
@@ -130,3 +131,11 @@ export default function AuthCallbackPage() {
     </div>
   );
 } 
+
+export default function AuthCallbackPage() {
+  return (
+    <Suspense fallback={<Loading />}>
+      <AuthCallbackPageContent />
+    </Suspense>
+  );
+}

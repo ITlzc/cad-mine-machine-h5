@@ -1,10 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { Toast, Dialog, Loading, Popup, DatePicker, Steps, Input, Button } from 'antd-mobile'
 import { getCurrentUser, signOut } from '../utils/supabase_lib'
 import { userService } from '../services/user-service'
-import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useDisconnect } from 'wagmi'
 import WalletModal from '../components/WalletModal'
@@ -69,7 +68,7 @@ const ERC20_ABI = [
   }
 ]
 
-export default function SettingsPage() {
+function SettingsPageContent() {
   const [emailAddress, setEmailAddress] = useState('')
   const [userInfo, setUserInfo] = useState<any>({})
   const [walletAddress, setWalletAddress] = useState('')
@@ -913,3 +912,11 @@ export default function SettingsPage() {
     </div>
   )
 } 
+
+export default function SettingsPage() {
+  return (
+    <Suspense fallback={<Loading />}>
+      <SettingsPageContent />
+    </Suspense>
+  );
+}

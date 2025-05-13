@@ -1,13 +1,15 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import MinerList from './components/MinerList'
 import WalletModal from './components/WalletModal'
 import { userService } from './services/user-service'
 import { Toast } from 'antd-mobile'
 import { getCurrentUser } from './utils/supabase_lib'
 import { minerService } from './services/miner-service'
-export default function Home() {
+import Loading from './components/Loading'
+
+function HomeContent() {
   const [showWalletModal, setShowWalletModal] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [userInfoByFetch, setUserInfoByFetch] = useState(null)
@@ -89,3 +91,11 @@ export default function Home() {
     </main>
   )
 } 
+
+export default function Home() {
+  return (
+    <Suspense fallback={<Loading />}>
+      <HomeContent />
+    </Suspense>
+  );
+}

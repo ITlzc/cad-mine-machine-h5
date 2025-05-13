@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import { CalendarIcon } from '@heroicons/react/24/outline'
+import Loading from '../components/Loading'
 
 interface WithdrawRecord {
   time: string
@@ -11,7 +12,7 @@ interface WithdrawRecord {
   status: 'completed' | 'pending' | 'failed'
 }
 
-export default function WithdrawRecordsPage() {
+function WithdrawRecordsPageContent() {
   const [dateFilter, setDateFilter] = useState('')
 
   // 模拟提现记录数据
@@ -121,3 +122,11 @@ export default function WithdrawRecordsPage() {
     </div>
   )
 } 
+
+export default function WithdrawRecordsPage() {
+  return (
+    <Suspense fallback={<Loading />}>
+      <WithdrawRecordsPageContent />
+    </Suspense>
+  );
+}

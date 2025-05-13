@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react' 
 import { Input, Button, Popup, DatePicker, Steps, Toast, Selector, Form } from 'antd-mobile'
 import moment from 'moment'
 import { useAccount, useWriteContract, usePublicClient, useSwitchChain, useChainId, useReadContract } from 'wagmi'
@@ -12,6 +12,9 @@ import { userService } from '../services/user-service'
 import WalletModal from '../components/WalletModal'
 import { sepolia } from 'viem/chains'
 import { createPublicClient, http } from 'viem'
+import Loading from '../components/Loading'
+
+
 const BRIDGE_ETH = '0xE4F6733c7b3f3A00a5d290059DCc3cE9B627A1A4'
 const BRIDGE_CAD = '0xF27541A5A17dED9A3922A0834E003628c430c3B5'
 const TOKEN_ADDRESS = '0x0Ed4400Cc8620FAC2c79cAf2381037f0a127E98b'
@@ -67,7 +70,7 @@ const ERC20_ABI = [
   }
 ]
 
-export default function WithdrawPage() {
+function WithdrawPageContent() {
   const [form] = Form.useForm()
   const [withdrawAddress, setWithdrawAddress] = useState('')
   const [profitAddress, setProfitAddress] = useState('')
@@ -1333,3 +1336,11 @@ export default function WithdrawPage() {
     </div>
   )
 } 
+
+export default function WithdrawPage() {
+  return (
+    <Suspense fallback={<Loading />}>
+      <WithdrawPageContent />
+    </Suspense>
+  );
+}

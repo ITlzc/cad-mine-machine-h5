@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { signInWithEmailOtp, verifyOtp, loginWithTwitter } from '../utils/supabase_lib';
 import { Toast } from 'antd-mobile'
 import { useNavigateWithParams } from '../hooks/useNavigateWithParams';
+import Loading from '../components/Loading';
 
 const LoginPage: React.FC = () => {
   const router = useRouter();
@@ -246,4 +247,10 @@ const LoginPage: React.FC = () => {
   );
 };
 
-export default LoginPage; 
+export default function LoginPageWrapper() {
+  return (
+    <Suspense fallback={<Loading />}>
+      <LoginPage />
+    </Suspense>
+  );
+} 
