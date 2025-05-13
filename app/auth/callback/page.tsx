@@ -3,19 +3,20 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../providers/AuthProvider';
-import { get_access_token, supabase, updateUserReferralId } from '../../utils/supabase_lib';
+import { get_access_token, supabase, updateUserReferralId, updateUserInviterCode } from '../../utils/supabase_lib';
+import { useNavigateWithParams } from '../../hooks/useNavigateWithParams';
 
 export default function AuthCallbackPage() {
   const router = useRouter();
   const { login } = useAuth();
-
+  const navigateWithParams = useNavigateWithParams()
   const fetchUserData = async (user) => {
     try {
         // setUser(user);
         // Fetch user data from backend API
         const access_token = await get_access_token();
         if (!access_token) {
-            router.push('/login');
+            navigateWithParams('/login', 'push');
             return;
         }
         const response = await fetch(`/api/v1/user/${user.id}`, {
@@ -58,11 +59,19 @@ export default function AuthCallbackPage() {
         if (user) {
           // Check for referral_id in URL
           const urlParams = new URLSearchParams(window.location.search);
+          console.log('urlParams = ',urlParams)
           const referralId = urlParams.get('referral_id');
+          const inviterCode = urlParams.get('inviter_code');
+
 
           // If referral_id exists, try to update it
           if (referralId) {
             await updateUserReferralId(user.id, referralId);
+          }
+
+          // If inviter_code exists, try to update it
+          if (inviterCode) {
+            await updateUserInviterCode(user.id, inviterCode);
           }
 
           // Get user's activation status from metadata or database
@@ -90,21 +99,22 @@ export default function AuthCallbackPage() {
           login(appUser);
           
           // Redirect based on activation status
-          if (!appUser.is_activated) {
-            console.log('appUser.is_activated 1111',appUser.is_activated);
-            router.push('/login');
-          } else {
-            console.log('appUser.is_activated 2222',appUser.is_activated);
-            router.push('/');
-          }
+          // if (!appUser.is_activated) {
+          //   console.log('appUser.is_activated 1111',appUser.is_activated);
+          //   router.push('/login');
+          // } else {
+          //   console.log('appUser.is_activated 2222',appUser.is_activated);
+          //   router.push('/');
+          // }
+          navigateWithParams('/', 'push');
         } else {
           console.log('appUser.is_activated 3333');
-          router.push('/login');
+          navigateWithParams('/login', 'push');
         }
       } catch (error) {
         console.log('appUser.is_activated 4444',error);
         console.error('Error in auth callback:', error);
-        router.push('/login');
+        navigateWithParams('/login', 'push');
       }
     };
 

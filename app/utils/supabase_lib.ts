@@ -15,6 +15,7 @@ interface TwitterLoginOptions {
   redirectTo?: string;
   scopes?: string;
   referralId?: string | null;
+  inviterCode?: string | null;
 }
 
 /**
@@ -64,24 +65,78 @@ export const updateUserReferralId = async (userId: string, referralId: string) =
 };
 
 /**
+ * Updates the user's referral_id in the database
+ * @param userId The user's ID
+ * @param referralId The referral ID to set
+ * @returns Promise with the result of the update operation
+ */
+export const updateUserInviterCode = async (userId: string, inviterCode: string) => {
+  try {
+    // First check if user already has a referral_id
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('inviter_code')
+      .eq('id', userId)
+      .single();
+
+    if (userError) {
+      throw userError;
+    }
+
+    // If user already has a referral_id, don't update
+    if (userData?.inviter_code) {
+      return { data: userData, error: null };
+    }
+
+    // Update user's referral_id
+    const { data, error } = await supabase
+      .from('users')
+      .update({ inviter_code: inviterCode })
+      .eq('id', userId)
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    return { data, error: null };
+  } catch (error) {
+    console.error('Error updating user inviter code:', error);
+    return {
+      data: null,
+      error: error instanceof Error ? error : new Error('Unknown error updating user inviter code'),
+    };
+  }
+};
+
+/**
  * Initiates Twitter OAuth login flow
  * @param options Configuration options for Twitter login
  * @returns Promise that resolves when the login flow is initiated
  */
 export const loginWithTwitter = async (options: TwitterLoginOptions = {}) => {
   try {
+    console.log('options = ',options)
     const redirectUrl = new URL(options.redirectTo || `${window.location.origin}/auth/callback`);
     if (options.referralId) {
       redirectUrl.searchParams.set('referral_id', options.referralId);
     }
 
-    let in_data: { redirectTo: string; scopes: string; queryParams?: { referral_id: string } } = {
+    if (options.inviterCode) {
+      redirectUrl.searchParams.set('inviter_code', options.inviterCode);
+    }
+
+    let in_data: { redirectTo: string; scopes: string; queryParams?: { referral_id: string; inviter_code?: string } } = {
         redirectTo: redirectUrl.toString(),
         scopes: options.scopes || 'users.read tweet.read email',
     }
 
     if (options.referralId) {
         in_data.queryParams = { referral_id: options.referralId };
+    }
+    if (options.inviterCode) {
+        in_data.queryParams = { ...in_data.queryParams, inviter_code: options.inviterCode };
     }
 
     const { data, error } = await supabase.auth.signInWithOAuth({
@@ -189,25 +244,30 @@ export const unlinkTwitter = async () => {
   }
 }; 
 
-export async function signInWithEmailOtp(email) {
+export async function signInWithEmailOtp({ 
+  email, 
+  inviterCode = '' // 添加邀请码参数，默认为空字符串
+}: { 
+  email: string
+  inviterCode?: string 
+}) {
   const { data, error } = await supabase.auth.signInWithOtp({
-    email: email,
+    email,
     options: {
-      shouldCreateUser: true    // 如果用户不存在，则自动注册
+      shouldCreateUser: true,
+      data: {
+        inviter_code: inviterCode  // 将邀请码添加到用户元数据中
+      }
     }
   })
-  console.log('signInWithEmailOtp = ',data,error)
-  if (error) {
-      throw error
-  }
-  return data
+  return { data, error }
 }
 
 export async function verifyOtp(email,otp) {
   const { data, error } = await supabase.auth.verifyOtp({
     email: email,
     token: otp,
-    type: 'email'
+    type: 'email',
   })
   console.log('verifyOtp = ',data,error)
   if (error) {

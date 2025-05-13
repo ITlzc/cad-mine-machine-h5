@@ -23,7 +23,7 @@ export const orderService = {
   },
 
   // 更新订单状态
-  updateOrderStatus: (id: string, status: number) => {
-    return apiClient.post(`/orders/update-shipping-status`, { id, status })
+  updateOrderStatus: (id: string, status: number, mac_addresses: string = '') => {
+    return apiClient.post(`/orders/update-shipping-status`, { id, status, mac_addresses })
   }
 } 

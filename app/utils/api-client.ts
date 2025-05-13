@@ -36,7 +36,6 @@ class ApiClient {
         case 401:
           // token 过期或无效，跳转登录
           localStorage.removeItem('access_token')
-          window.location.href = '/login'
           break
         case 403:
           Toast.show({

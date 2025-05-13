@@ -9,6 +9,7 @@ import Loading from '../components/Loading'
 import { PhoneInput } from 'react-international-phone';
 import { PhoneNumberUtil } from 'google-libphonenumber'
 import 'react-international-phone/style.css'
+import { useSearchParams } from 'next/navigation'
 
 interface Pool {
   id: string
@@ -55,18 +56,19 @@ interface Props {
     MPQ: number
   }
   discount: number
+  userInfo: any
 }
 
-export default function BuyForm({ visible, onClose, onSubmit, miner, discount }: Props) {
+export default function BuyForm({ visible, onClose, onSubmit, miner, discount, userInfo }: Props) {
   const [form] = Form.useForm()
   const [pools, setPools] = useState<Pool[]>([])
   const [loading, setLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
-  const [selectedCountryCode, setSelectedCountryCode] = useState('+86')
-  const [showCountryPicker, setShowCountryPicker] = useState(false)
   const [selectedPool, setSelectedPool] = useState<Pool | null>(null)
   const [showPoolPicker, setShowPoolPicker] = useState(false)
   const [phoneNumber, setPhoneNumber] = useState('')
+  const searchParams = useSearchParams()
+  const inviteCode = searchParams.get('inviter_code')
 
   const phoneUtil = PhoneNumberUtil.getInstance();
 
@@ -365,6 +367,22 @@ export default function BuyForm({ visible, onClose, onSubmit, miner, discount }:
             >
               <Input placeholder="请填写邮政编码" className="!text-sm placeholder:text-xs" />
             </Form.Item>
+
+            {/* 邀请码（可选） */}
+            {userInfo?.role === 0 && <Form.Item
+              name="inviteCode"
+              label="邀请码"
+              className="!text-base adm-form-item-horizontal"
+              initialValue={inviteCode || ''}
+              rules={[{ validator: (_, value) => {
+                if (value && value.length !== 12) {
+                  return Promise.reject('请输入正确的邀请码')
+                }
+                return Promise.resolve()
+              }}]}
+            >
+              <Input placeholder="邀请码（可选）" className="!text-sm placeholder:text-xs" />
+            </Form.Item>}
           </Form>
         </div>
       </div>

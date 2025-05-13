@@ -46,10 +46,10 @@ export default function Home() {
           console.error('获取用户信息失败:', error)
         } else {
           const userInfo: any = await userService.getUserInfo(user_data?.id)
-          console.log('用户信息:', userInfo, userInfo && userInfo?.user && !userInfo?.user.wallet_address)
           setUserInfoByFetch(userInfo?.user)
 
-          if (userInfo && userInfo?.user && !userInfo?.user.wallet_address) {
+          const historyAddress: any = await userService.getHistoryAddress()
+          if(!historyAddress || (historyAddress && historyAddress?.length === 0)) {
             setShowWalletModal(true)
           }
 

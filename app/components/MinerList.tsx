@@ -12,7 +12,7 @@ import { useAccount, useWriteContract, usePublicClient } from 'wagmi'
 import { Bsc } from '../utils/bsc_config'
 import { useConnectModal } from '@rainbow-me/rainbowkit'
 import { useRouter } from 'next/navigation'
-
+import { useNavigateWithParams } from '../hooks/useNavigateWithParams'
 
 interface Miner {
   id: string
@@ -75,6 +75,7 @@ function ExpandableText({ text, maxLines = 3 }: ExpandableTextProps) {
 }
 
 export default function MinerList({ discount, userInfo }: { discount: number, userInfo: any }) {
+  const navigateWithParams = useNavigateWithParams()
   const [miners, setMiners] = useState<Miner[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedMiner, setSelectedMiner] = useState<Miner | null>(null)
@@ -130,14 +131,14 @@ export default function MinerList({ discount, userInfo }: { discount: number, us
   }, [isConnected])
 
   const handleBuyClick = (miner: Miner) => {
-    if(userInfo.role === 0){
-      Dialog.alert({
-        title: '提示',
-        content: '请向代理商购买',
-      })
+    // if(userInfo.role === 0){
+    //   Dialog.alert({
+    //     title: '提示',
+    //     content: '请向代理商购买',
+    //   })
       
-      return
-    }
+    //   return
+    // }
     setSelectedMiner(miner)
     setShowBuyForm(true)
   }
@@ -192,7 +193,7 @@ export default function MinerList({ discount, userInfo }: { discount: number, us
           id: toastId
         })
 
-        router.push(`/orders`)
+        navigateWithParams(`/orders`, 'push')
       } else {
         throw new Error('交易失败')
       }
@@ -224,7 +225,8 @@ export default function MinerList({ discount, userInfo }: { discount: number, us
             phone: orderData.phone,
             address: orderData.address,
             postcode: orderData.postcode
-          }
+          },
+          inviter_code: values.inviteCode
         })
 
         // 保存支付信息
@@ -413,6 +415,7 @@ export default function MinerList({ discount, userInfo }: { discount: number, us
           onSubmit={handleSubmit}
           discount={discount}
           miner={selectedMiner}
+          userInfo={userInfo}
         />
       )}
 

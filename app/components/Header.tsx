@@ -6,13 +6,14 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { getCurrentUser, signOut } from '../utils/supabase_lib';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { useNavigateWithParams } from '../hooks/useNavigateWithParams'
 
 const Header: React.FC = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
   const [user, setUser] = useState(null);
-
+  const navigateWithParams = useNavigateWithParams()
   // 判断是否是登录相关页面
   const isAuthPage = ['/login', '/register', '/forgot-password'].includes(pathname)
 
@@ -26,7 +27,7 @@ const Header: React.FC = () => {
       if (!user) {
         const { user: user_data, error } = await getCurrentUser();
         if (error || !user_data) {
-          router.push('/login');
+          navigateWithParams('/login', 'push');
           return
         }
         user = user_data;
@@ -63,7 +64,7 @@ const Header: React.FC = () => {
 
       // Redirect to login page
       console.log('logout 1111');
-      router.push('/login');
+      navigateWithParams('/login', 'push');
     } catch (error) {
       console.error('Error during logout:', error);
     }
@@ -82,7 +83,7 @@ const Header: React.FC = () => {
                 height={42}
                 // className="h-8 w-auto"
               />
-              <span className="ml-2 text-xl font-semibold">EpochMine</span>
+              <span className="ml-1 text-base font-semibold">EpochMine</span>
             </div>
           </Link>
         </div>

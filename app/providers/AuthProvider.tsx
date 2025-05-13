@@ -4,7 +4,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { get_access_token, getCurrentUser } from '../utils/supabase_lib';
 import { supabase } from '../utils/supabase_lib';
-
+import { useNavigateWithParams } from '../hooks/useNavigateWithParams';
 interface User {
   id?: string;
   name?: string;
@@ -32,6 +32,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
+  const navigateWithParams = useNavigateWithParams()
 
   useEffect(() => {
     // Check for stored user data in localStorage on mount
@@ -48,7 +49,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Fetch user data from backend API
       const access_token = await get_access_token();
       if (!access_token) {
-        router.push('/login');
+        navigateWithParams('/login', 'push');
         return;
       }
       const response = await fetch(`/api/v1/user/${user.id}`, {
@@ -83,7 +84,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const checkAuthAndRedirect = async () => {
       const access_token = await get_access_token();
       if (!access_token) {
-        router.push('/login');
+        navigateWithParams('/login', 'push');
         return;
       }
 
@@ -119,10 +120,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Redirect to login with referral_id if it exists
         if (referralId) {
           //   console.log('referralId 1111',referralId);
-          router.push(`/login?referral_id=${referralId}`);
+          navigateWithParams(`/login?referral_id=${referralId}`, 'push');
         } else {
           //   console.log('referralId 2222');
-          router.push('/login');
+          navigateWithParams('/login', 'push');
         }
       } else if (currentUser) {
         // Check user's status
@@ -146,19 +147,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = (userData: User) => {
     setUser(userData);
-    // console.log('login 1111');
-
-    // If user is not activated, stay on login page
-    // if (!userData.is_activated) {
-    //   router.push('/login');
-    // }
-    // else router.push('/'); // Redirect to dashboard after login for activated users
   };
 
   const logout = () => {
     setUser(null);
     localStorage.removeItem('user');
-    router.push('/login');
+    navigateWithParams('/login', 'push');
   };
 
   const value = {

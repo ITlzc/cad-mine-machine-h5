@@ -2,18 +2,29 @@
 
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { signInWithEmailOtp, verifyOtp, loginWithTwitter } from '../utils/supabase_lib';
 import { Toast } from 'antd-mobile'
-
+import { useNavigateWithParams } from '../hooks/useNavigateWithParams';
 
 const LoginPage: React.FC = () => {
   const router = useRouter();
+  const navigateWithParams = useNavigateWithParams();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
   const [verificationCode, setVerificationCode] = useState('');
   const [isSendingCode, setIsSendingCode] = useState(false);
   const [countdown, setCountdown] = useState(0);
   const [emailError, setEmailError] = useState('');
+  const [inviterCode, setInviterCode] = useState('');
+
+  // 在组件加载时读取 URL 参数
+  useEffect(() => {
+    const code = searchParams.get('inviter_code');
+    if (code) {
+      setInviterCode(code);
+    }
+  }, [searchParams]);
 
   // 邮箱格式验证函数
   const validateEmail = (email: string) => {
@@ -25,7 +36,7 @@ const LoginPage: React.FC = () => {
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newEmail = e.target.value;
     setEmail(newEmail);
-    
+
     // 实时验证邮箱格式
     if (newEmail && !validateEmail(newEmail)) {
       setEmailError('请输入有效的邮箱地址');
@@ -47,9 +58,9 @@ const LoginPage: React.FC = () => {
   }, [countdown]);
 
   const handleSendVerificationCode = async () => {
-    console.log('handleSendVerificationCode = ',email)
+    console.log('handleSendVerificationCode = ', email)
     if (!email || isSendingCode || countdown > 0) return;
-    
+
     // 发送验证码前再次验证邮箱格式
     if (!validateEmail(email)) {
       setEmailError('请输入有效的邮箱地址');
@@ -59,11 +70,11 @@ const LoginPage: React.FC = () => {
       });
       return;
     }
-    
+
     setIsSendingCode(true);
     try {
-      const data = await signInWithEmailOtp(email);
-      console.log('data = ',data)
+      const data = await signInWithEmailOtp({ email, inviterCode });
+      console.log('data = ', data)
       setCountdown(120); // Start 120 seconds countdown
       Toast.show({
         content: '验证码已发送',
@@ -81,10 +92,10 @@ const LoginPage: React.FC = () => {
   };
 
   const handleLogin = async (e: React.FormEvent) => {
-    console.log('handleLogin = ',email,verificationCode)
+    console.log('handleLogin = ', email, verificationCode)
     e.preventDefault();
     if (!email || !verificationCode) return;
-    
+
     // 登录前再次验证邮箱格式
     if (!validateEmail(email)) {
       setEmailError('请输入有效的邮箱地址');
@@ -106,8 +117,8 @@ const LoginPage: React.FC = () => {
       // });
 
       const data = await verifyOtp(email, verificationCode);
-      console.log('data = ',data)
-      router.replace('/');
+      console.log('data = ', data)
+      navigateWithParams('/', 'replace');
     } catch (error) {
       Toast.show({
         content: error.message || 'Login failed',
@@ -119,7 +130,7 @@ const LoginPage: React.FC = () => {
 
   const handleTwitterLogin = async () => {
     try {
-      const { error } = await loginWithTwitter();
+      const { error } = await loginWithTwitter({ inviterCode });
       if (error) {
         Toast.show({
           content: 'Twitter login failed',
@@ -140,16 +151,16 @@ const LoginPage: React.FC = () => {
     <div className="flex h-full items-center justify-center bg-gray-50">
       <div className="w-full bg-white rounded-lg p-8 pt-20">
         <div className="flex justify-center mb-6">
-          <Image 
-            src="/images/logo.jpeg" 
-            alt="Logo" 
+          <Image
+            src="/images/logo.jpeg"
+            alt="Logo"
             width={48}
             height={48}
             className="h-12 w-auto"
           />
         </div>
         <h1 className="text-2xl font-medium text-center mb-8">欢迎登录 EpochMine</h1>
-        
+
         <form onSubmit={handleLogin} className="space-y-6">
           <div>
             <label className="block text-base text-gray-700 mb-2">邮箱地址</label>
@@ -163,7 +174,7 @@ const LoginPage: React.FC = () => {
             />
             {emailError && <p className="mt-1 text-sm text-red-500">{emailError}</p>}
           </div>
-          
+
           <div>
             <label className="block text-base text-gray-700 mb-2">验证码</label>
             <div className="flex gap-4">
@@ -185,6 +196,21 @@ const LoginPage: React.FC = () => {
               </button>
             </div>
           </div>
+
+          {/* 当有邀请码时显示 */}
+          {inviterCode && (
+            <div>
+              <label className="block text-base text-gray-700 mb-2">邀请码</label>
+              <input
+                id="inviter-code"
+                name="inviter_code"
+                type="text"
+                className="text-base w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={inviterCode}
+                disabled
+              />
+            </div>
+          )}
 
           <button
             type="submit"
@@ -210,7 +236,7 @@ const LoginPage: React.FC = () => {
             className="text-base mt-4 w-full flex items-center justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           >
             <svg className="h-5 w-5 text-[#1DA1F2] mr-2" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
+              <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z" />
             </svg>
             使用 Twitter 登录
           </button>
