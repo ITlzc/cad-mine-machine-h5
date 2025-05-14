@@ -30,11 +30,13 @@ function HomeContent() {
         }
       }
     } catch (error) {
-      console.error('连接钱包失败:', error)
-      Toast.show({
-        content: '连接钱包失败',
-        position: 'center'
-      })
+      if (!error.message.includes('User denied') && !error.message.includes('user rejected') && !error.message.includes('User rejected')) {
+        console.error('绑定钱包失败:', error)
+        Toast.show({
+          content: '绑定钱包失败：' + error.message,
+          position: 'center'
+        })
+      }
     } finally {
       setSubmitting(false)
     }

@@ -39,8 +39,16 @@ export const userService = {
   },
 
   // 返佣提现
-  withdrawCommission: (amount: number, walletAddress: string) => {
-    return apiClient.post('/user/commission/withdraw', { amount, wallet_address: walletAddress })
+  withdrawCommission: (amount: number, withdrawalAddress: string) => {
+    return apiClient.post('/user/commission/withdraw', { amount, withdrawal_address: withdrawalAddress })
+  },
+
+  // 返佣提现记录
+  getCommissionWithdrawalRecords: (page: number = 1, limit: number = 10, startTime: string = '', endTime: string = '') => {
+    return apiClient.get(`/user/commission/withdrawal/records?page=${page}&limit=${limit}&start_time=${startTime}&end_time=${endTime}`)
+  },
+  getCommissionWithdrawalRecord: (id: string) => {
+    return apiClient.get(`/user/commission/withdrawal/records/${id}`)
   },
 
   // 累计返佣

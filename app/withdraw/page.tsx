@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react' 
+import { useState, useEffect, Suspense } from 'react'
 import { Input, Button, Popup, DatePicker, Steps, Toast, Selector, Form } from 'antd-mobile'
 import moment from 'moment'
 import { useAccount, useWriteContract, usePublicClient, useSwitchChain, useChainId, useReadContract } from 'wagmi'
@@ -78,14 +78,12 @@ function WithdrawPageContent() {
   const [fee] = useState(0.02) // 2%
   const [actualAmount, setActualAmount] = useState(0)
   const [showRecords, setShowRecords] = useState(false)
-  const [showDatePicker, setShowDatePicker] = useState(false)
-  const [selectedDate, setSelectedDate] = useState<Date>()
   const [showStepsModal, setShowStepsModal] = useState(false)
   const [currentStep, setCurrentStep] = useState(0)
   const [stepStatus, setStepStatus] = useState<'process' | 'wait' | 'finish' | ''>('')
   const { address } = useAccount()
   const { writeContractAsync } = useWriteContract()
-  const { switchChain, switchChainAsync } = useSwitchChain()
+  const { switchChainAsync } = useSwitchChain()
   const chainId = useChainId()
   const publicClient = usePublicClient()
 
@@ -112,59 +110,49 @@ function WithdrawPageContent() {
   const [tipText, setTipText] = useState('')
   const [processingRecord, setProcessingRecord] = useState<any>()
   const [isLoading, setIsLoading] = useState(false)
+  const [pageLoading, setPageLoading] = useState(false)
 
   const { data: allowance, refetch: refetchAllowance } = useReadContract({
     abi: ERC20_ABI,
     address: TOKEN_ADDRESS,
-
     functionName: "allowance",
-    args: [historyAddresses && historyAddresses.length > 0 ? historyAddresses[0].wallet_address : address, BRIDGE_CAD],
+    args: [address, BRIDGE_CAD],
     chainId: CAD_CHAIN.id,
     query: {
       enabled: false
     }
   })
 
-
-  const { data: balance, refetch: refetchBalance } = useReadContract({
-    abi: CADM_ABI.abi,
-    address: TOKEN_ADDRESS,
-    functionName: "batchGetBalance",
-    args: [historyAddresses && historyAddresses.length > 0 ? [historyAddresses[0]?.wallet_address] : []],
-    chainId: CAD_CHAIN.id,
-    query: {
-      enabled: false
-    }
-  })
-
-  const { data: totalWithdrawn_balance, refetch: refetchTotalWithdrawn } = useReadContract({
-    abi: BridgeABI.abi,
-    address: BRIDGE_CAD,
-    functionName: "batchGetBridgeOutAmount",
-    args: [historyAddresses && historyAddresses.length > 0 ? [historyAddresses[0]?.wallet_address] : []],
-    chainId: CAD_CHAIN.id,
-    query: {
-      enabled: false
-    }
-  })
-
-
-  // console.log('allowance', allowance)
-  // 可提现金额 batchGetBalance
   const getAvailableBalance = async () => {
-    const { data: balance } = await refetchBalance()
-    if (balance) {
-      console.log('balance', balance)
-      setAvailableBalance(Number(ethers.utils.formatEther(balance as bigint)).toFixed(2))
-    }
-  }
+    try {
+      setPageLoading(true)
+      const cadClient = createPublicClient({
+        chain: CAD_CHAIN,
+        transport: http()
+      })
+      const balance = await cadClient.readContract({
+        address: TOKEN_ADDRESS,
+        abi: CADM_ABI.abi,
+        functionName: "batchGetBalance",
+        args: [[address]],
+      })
 
-  // 已提现金额 batchGetBalance
-  const getTotalWithdrawn = async () => {
-    const { data: totalWithdrawn_balance } = await refetchTotalWithdrawn()
-    if (totalWithdrawn_balance) {
-      console.log('totalWithdrawn_balance', totalWithdrawn_balance)
-      setTotalWithdrawn(Number(ethers.utils.formatEther(totalWithdrawn_balance as bigint)).toFixed(2))
+      const totalWithdrawn = await cadClient.readContract({
+        address: BRIDGE_CAD,
+        abi: BridgeABI.abi,
+        functionName: "batchGetBridgeOutAmount",
+        args: [[address]],
+      })
+      if (!isNaN(Number(balance))) {
+        setAvailableBalance(Number(ethers.utils.formatEther(balance as bigint)).toFixed(2))
+      }
+      if (!isNaN(Number(totalWithdrawn))) {
+        setTotalWithdrawn(Number(ethers.utils.formatEther(totalWithdrawn as bigint)).toFixed(2))
+      }
+    } catch (error) {
+      console.error('获取可提现金额失败:', error)
+    } finally {
+      setPageLoading(false)
     }
   }
 
@@ -181,14 +169,17 @@ function WithdrawPageContent() {
           })
           setSubmitting(false)
           setShowWalletModal(false)
+          await fetchHistoryAddresses()
         }
       }
     } catch (error) {
-      console.error('连接钱包失败:', error)
-      Toast.show({
-        content: '连接钱包失败',
-        position: 'center'
-      })
+      if (!error.message.includes('User denied') && !error.message.includes('user rejected') && !error.message.includes('User rejected')) {
+        console.error('绑定钱包失败:', error)
+        Toast.show({
+          content: '绑定钱包失败：' + error.message,
+          position: 'center'
+        })
+      }
     } finally {
       setSubmitting(false)
     }
@@ -198,27 +189,37 @@ function WithdrawPageContent() {
   // 获取历史地址
   const fetchHistoryAddresses = async () => {
     try {
+      setPageLoading(true)
       const addresses: any = await userService.getHistoryAddress()
       console.log('addresses', addresses)
       if (addresses) {
         setHistoryAddresses(addresses)
-        // 如果有地址，默认选择第一个
+        // 如果有地址，检测当前地址是否包含在地址列表中，如果包含，则默认选择当前地址，否则选择第一个地址
         if (addresses.length > 0) {
-          setProfitAddress(addresses[0].wallet_address)
-          // 设置表单的初始值
-          form.setFieldValue('profitAddress', addresses[0].wallet_address)
+          const lowerCaseAddress = address?.toLowerCase()
+          const hasAvailableAddress = addresses.find((item: any) => item.wallet_address.toLowerCase() === lowerCaseAddress)
+          if (hasAvailableAddress) {
+            setProfitAddress(address)
+            form.setFieldValue('profitAddress', address)
+          } else {
+            setProfitAddress(addresses[0].wallet_address)
+            form.setFieldValue('profitAddress', addresses[0].wallet_address)
+          }
         }
       } else {
         setShowWalletModal(true)
       }
     } catch (error) {
       console.error('获取历史地址失败:', error)
+    } finally {
+      setPageLoading(false)
     }
   }
 
   // getWithdrawalRecords
   const getWithdrawalRecords = async (page = 1, startDate: Date | null = null, endDate: Date | null = null) => {
     try {
+      setPageLoading(true)
       const res: any = await userService.getWithdrawalRecords(
         page,
         pagination.pageSize,
@@ -235,6 +236,8 @@ function WithdrawPageContent() {
       }
     } catch (error) {
       console.error('获取提现记录失败:', error)
+    } finally {
+      setPageLoading(false)
     }
   }
 
@@ -243,7 +246,17 @@ function WithdrawPageContent() {
   // 检查授权额度
   const checkAllowance = async () => {
     try {
-      const { data: allowance } = await refetchAllowance()
+      const cadClient = createPublicClient({
+        chain: CAD_CHAIN,
+        transport: http()
+      })
+
+      const allowance = await cadClient.readContract({
+        address: TOKEN_ADDRESS,
+        abi: ERC20_ABI,
+        functionName: "allowance",
+        args: [address, BRIDGE_CAD],
+      })
       return ethers.utils.formatEther(allowance as bigint)
     } catch (error) {
       console.error('检查授权额度失败:', error)
@@ -324,7 +337,7 @@ function WithdrawPageContent() {
       return chainId_
     } catch (error) {
       // 如果是用户拒绝错误，直接抛出
-      if (error.message.includes('User denied') || error.message.includes('user rejected')) {
+      if (error.message.includes('User denied') || error.message.includes('user rejected') || error.message.includes('User rejected')) {
         throw error
       }
       // 其他错误，尝试先添加网络
@@ -353,9 +366,7 @@ function WithdrawPageContent() {
     }
   }
 
-  // 修改 handleWithdraw 函数
-  const handleWithdraw = async () => {
-    setIsWithdrawing(true)
+  const handleProfitAddressChange = async (selectedAddress: string) => {
     if (!address) {
       Toast.show({
         content: '请先连接钱包',
@@ -364,7 +375,57 @@ function WithdrawPageContent() {
       return
     }
 
+    // 如果当前地址不是选中的地址，尝试切换
+    if (address?.toLowerCase() !== selectedAddress.toLowerCase()) {
+      Toast.show({
+        content: '请将钱包地址切换至：' + `${selectedAddress.slice(0, 6)}...${selectedAddress.slice(-4)}`,
+        position: 'center',
+        duration: 3000
+      })
+    }
+    setProfitAddress(selectedAddress)
+    form.setFieldValue('profitAddress', selectedAddress)
+    setShowAddressSelector(false)
+  }
+
+  // 修改 handleWithdraw 函数
+  const handleWithdraw = async () => {
+    if (!address) {
+      Toast.show({
+        content: '请先连接钱包',
+        position: 'center',
+      })
+      return
+    }
+
+    if (!Number(withdrawAmount)) {
+      Toast.show({
+        content: '请输入提现金额',
+        position: 'center',
+      })
+      return
+    }
+
+    if (!withdrawAddress) {
+      Toast.show({
+        content: '请输入提现地址',
+        position: 'center',
+      })
+      return
+    }
+
+    // 检查当前连接的钱包地址是否与选中的收益地址一致
+    if (address.toLowerCase() !== profitAddress.toLowerCase()) {
+      Toast.show({
+        content: '请将钱包地址切换至：' + profitAddress.slice(0, 6) + '...' + profitAddress.slice(-4),
+        position: 'center',
+        duration: 3000
+      })
+      return
+    }
+
     try {
+      setIsWithdrawing(true)
       if (chainId !== CAD_CHAIN.id) {
         await switchToNetwork(CAD_CHAIN.id)
       }
@@ -382,7 +443,7 @@ function WithdrawPageContent() {
 
     } catch (error) {
       console.error('检查授权失败:', error)
-      if (!error.message.includes('User denied') && !error.message.includes('user rejected')) {
+      if (!error.message.includes('User denied') && !error.message.includes('user rejected') && !error.message.includes('User rejected')) {
         Toast.show({
           content: error.message || '检查授权失败，请重试',
           position: 'center',
@@ -401,11 +462,12 @@ function WithdrawPageContent() {
         await switchToNetwork(CAD_CHAIN.id)
       }
 
+      console.log('ethers.constants.MaxUint256', ethers.constants.MaxUint256, ethers.constants.MaxUint256.toString())
       const hash = await writeContractAsync({
         abi: ERC20_ABI,
         address: TOKEN_ADDRESS,
         functionName: 'approve',
-        args: [BRIDGE_CAD, ethers.utils.parseEther(withdrawAmount)],
+        args: [BRIDGE_CAD, ethers.constants.MaxUint256],
         chain: CAD_CHAIN,
         account: address
       })
@@ -413,24 +475,25 @@ function WithdrawPageContent() {
       const receipt = await publicClient.waitForTransactionReceipt({ hash })
       console.log('receipt', receipt)
       if (receipt.status === 'success') {
+        await new Promise(resolve => setTimeout(resolve, 3000))
         const allowance = await checkAllowance()
         if (Number(allowance) >= Number(withdrawAmount)) {
           setCurrentStep(1)
           setStepStatus('wait')
         } else {
+          console.log('allowance', allowance)
           setStepStatus('wait')
         }
       } else {
+        Toast.show({
+          content: '授权失败，请重试',
+          position: 'center',
+        })
         setStepStatus('wait')
       }
     } catch (error) {
       console.error('操作失败:', error)
-      if (error.message.includes('User denied') || error.message.includes('user rejected')) {
-        Toast.show({
-          content: '用户取消了操作',
-          position: 'center',
-        })
-      } else {
+      if (!error.message.includes('User denied') && !error.message.includes('user rejected') && !error.message.includes('User rejected')) {
         Toast.show({
           content: error.message || '操作失败，请重试',
           position: 'center',
@@ -486,12 +549,7 @@ function WithdrawPageContent() {
       }
     } catch (error) {
       console.error('操作失败:', error)
-      if (error.message.includes('User denied') || error.message.includes('user rejected')) {
-        Toast.show({
-          content: '用户取消了操作',
-          position: 'center',
-        })
-      } else {
+      if (!error.message.includes('User denied') && !error.message.includes('user rejected') && !error.message.includes('User rejected')) {
         Toast.show({
           content: error.message || '操作失败，请重试',
           position: 'center',
@@ -516,6 +574,15 @@ function WithdrawPageContent() {
         return
       }
 
+      if (address.toLowerCase() !== record?.from?.toLowerCase() && isTableClick) {
+        Toast.show({
+          content: '请将钱包地址切换至：' + record?.from.slice(0, 6) + '...' + record?.from.slice(-4),
+          position: 'center',
+          duration: 3000
+        })
+        setProcessingRecord(undefined)
+        return
+      }
       const params = {
         to: record?.to ? record.to : withdrawAddress,
         amount: record?.amount ? record.amount : ethers.utils.parseEther(withdrawAmount),
@@ -559,20 +626,24 @@ function WithdrawPageContent() {
         }
         setProcessingRecord(undefined)
       } catch (error) {
-        console.error('以太坊跨链失败:', error)
-        Toast.show({
-          content: error.message || '操作失败，请重试',
-          position: 'center',
-        })
+        if (!error.message.includes('User denied') && !error.message.includes('user rejected') && !error.message.includes('User rejected')) {
+          console.error('以太坊跨链失败:', error)
+          Toast.show({
+            content: error.message || '操作失败，请重试',
+            position: 'center',
+          })
+        }
         setStepStatus('wait')
         setProcessingRecord(undefined)
       }
     } catch (error) {
       console.error('以太坊跨链失败:', error)
-      Toast.show({
-        content: error.message || '操作失败，请重试',
-        position: 'center',
-      })
+      if (!error.message.includes('User denied') && !error.message.includes('user rejected') && !error.message.includes('User rejected')) {
+        Toast.show({
+          content: error.message || '操作失败，请重试',
+          position: 'center',
+        })
+      }
       setStepStatus('wait')
       setProcessingRecord(undefined)
     }
@@ -584,73 +655,6 @@ function WithdrawPageContent() {
     if (record?.id) {
       setRecentOperatedIds(prev => [...new Set([...prev, record.id])])
     }
-
-    // setTipText('提现成功，后台更新状态中，请稍后刷新记录查看...')
-
-    // 启动自动刷新
-    // let attempts = 0
-    // const maxAttempts = 20
-
-    // const checkInterval = setInterval(async () => {
-    //   try {
-    //     attempts++
-    //     if (attempts >= maxAttempts) {
-    //       clearInterval(checkInterval)
-    //       Toast.show({
-    //         content: '提现成功，后台更新状态中，请稍后刷新记录查看',
-    //         position: 'center',
-    //         duration: 3000
-    //       })
-    //       return
-    //     }
-
-    //     const res: any = await userService.getWithdrawalRecords(1)
-    //     if (res?.records) {
-    //       const updatedRecord = res.records.find((r: any) => r.id === record.id)
-    //       if (updatedRecord?.to_chain_tx_status === 1) {
-    //         clearInterval(checkInterval)
-    //         Toast.show({
-    //           content: '提现成功',
-    //           position: 'center',
-    //         })
-    //         // 更新记录列表
-    //         setWithdrawalRecords(prev =>
-    //           prev.map(r => r.id === record.id ? updatedRecord : r)
-    //         )
-    //         // 从最近操作列表中移除
-    //         setRecentOperatedIds(prev => prev.filter(id => id !== record.id))
-
-    //         setShowStepsModal(false)
-    //         setCurrentStep(0)
-    //         setStepStatus('wait')
-    //         setIsWithdrawing(false)
-    //         setWithdrawAddress('')
-    //         setWithdrawAmount('')
-    //         form.setFieldsValue({
-    //           withdrawAmount: '',
-    //           withdrawAddress: ''
-    //         })
-    //       }
-    //     }
-    //   } catch (error) {
-    //     console.error('检查记录状态失败:', error)
-    //     Toast.show({
-    //       content: '后台更新状态中，请稍后在记录中刷新查看',
-    //       position: 'center',
-    //       duration: 3000
-    //     })
-    //     setIsWithdrawing(false)
-    //     setShowStepsModal(false)
-    //     setCurrentStep(0)
-    //     setStepStatus('wait')
-    //     setWithdrawAddress('')
-    //     setWithdrawAmount('')
-    //     form.setFieldsValue({
-    //       withdrawAmount: '',
-    //       withdrawAddress: ''
-    //     })
-    //   }
-    // }, 3000)
 
     Toast.show({
       content: '提现成功，后台更新状态中，请稍后刷新记录查看',
@@ -763,19 +767,69 @@ function WithdrawPageContent() {
 
   useEffect(() => {
     const getBalance = async () => {
-      if (historyAddresses.length > 0 && address) {
-        try {
-          await getAvailableBalance()
-          await getTotalWithdrawn()
-        } catch (error) {
-          console.error('网络切换失败:', error)
+      if (historyAddresses.length > 0) {
+        await getAvailableBalance()
+        if (historyAddresses.find(item => item.wallet_address === address)) {
+          setProfitAddress(address)
+          form.setFieldValue('profitAddress', address)
         }
       }
     }
-    if (!isWithdrawing) {
+    if (address) {
       getBalance()
     }
-  }, [historyAddresses, address, isWithdrawing, chainId])
+  }, [address, historyAddresses])
+
+  // 修改地址选择器UI
+  const renderAddressSelector = () => {
+    return (
+      <Popup
+        visible={showAddressSelector}
+        onMaskClick={() => setShowAddressSelector(false)}
+        position="bottom"
+        bodyStyle={{
+          height: '50vh',
+          borderTopLeftRadius: '8px',
+          borderTopRightRadius: '8px',
+        }}
+      >
+        <div className="p-4">
+          <div className="flex justify-between items-center mb-4">
+            <span className="text-lg font-medium">选择收益地址</span>
+            <span
+              className="text-gray-500 text-2xl leading-none cursor-pointer"
+              onClick={() => setShowAddressSelector(false)}
+            >
+              ×
+            </span>
+          </div>
+
+          <div className="max-h-[50vh] overflow-auto">
+            {historyAddresses.map((item: any) => (
+              <div
+                key={item.id}
+                className={`py-3 px-4 border-b cursor-pointer ${profitAddress === item.wallet_address ? 'bg-[#E8F3FF] text-[#165DFF]' : ''
+                  } ${address?.toLowerCase() === item.wallet_address.toLowerCase() ? 'border-[#165DFF]' : ''
+                  }`}
+                onClick={() => handleProfitAddressChange(item.wallet_address)}
+              >
+                <div className="text-sm truncate">
+                  {item.wallet_address.slice(0, 10)}...{item.wallet_address.slice(-6)}
+                  {address?.toLowerCase() === item.wallet_address.toLowerCase() &&
+                    <span className="ml-2 text-xs text-[#165DFF]">(当前连接)</span>
+                  }
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </Popup>
+    )
+  }
+
+  if (pageLoading) {
+    return <Loading />
+  }
 
   return (
     <div className="min-h-screen bg-[#fff] pb-20">
@@ -803,15 +857,23 @@ function WithdrawPageContent() {
             profitAddress: profitAddress
           }}
           footer={
-            <Button
+            !historyAddresses.length ? <Button
               block
               color="primary"
               className="!rounded-lg !h-11"
-              onClick={handleWithdraw}
-              disabled={!withdrawAddress || !profitAddress || !withdrawAmount || !address || !historyAddresses.length}
+              onClick={() => setShowWalletModal(true)}
             >
-              {!address ? '请先连接钱包' : address && historyAddresses.length === 0 ? '请先绑定地址' : '确认提现'}
-            </Button>
+              请先绑定钱包
+            </Button> :
+              <Button
+                block
+                color="primary"
+                className="!rounded-lg !h-11"
+                onClick={handleWithdraw}
+                disabled={!withdrawAddress || !profitAddress || !Number(withdrawAmount) || !Number(availableBalance) || !address || !historyAddresses.length}
+              >
+                {!address ? '请先连接钱包' : '确认提现'}
+              </Button>
           }
         >
           <Form.Item
@@ -963,7 +1025,7 @@ function WithdrawPageContent() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {withdrawalRecords.slice(0, 10).map((record, index) => (
+              {withdrawalRecords.length > 0 ? withdrawalRecords.slice(0, 10).map((record, index) => (
                 <tr key={index} className="grid grid-cols-5 px-1 py-2 text-xs">
                   <td className="text-left">{Number(ethers.utils.formatEther(record.amount.toString()))} CAD</td>
                   <td className="text-left">{moment(record.created_at).format('YYYY-MM-DD HH:mm:ss')}</td>
@@ -984,23 +1046,16 @@ function WithdrawPageContent() {
                           </Button>
                         }
 
-                        {/* {recentOperatedIds.includes(record.id) &&
-                          <Button
-                            size="small"
-                            className='!rounded-lg !text-xs !w-[80%] !bg-gray-100'
-                            loading={isLoading}
-                            disabled={isLoading}
-                            onClick={() => refreshSingleRecord(record.id)}
-                          >
-                            {isLoading ? <i className="fas fa-spinner fa-spin"></i> : <i className="fas fa-sync-alt"></i>}
-                          </Button>
-                        } */}
-                        {(record.to_chain_tx_status === 1 || record.to_chain_tx_status === 2 || !record.deadline) && <div>-</div>}
+                        {(record.to_chain_tx_status === 1 || record.to_chain_tx_status === 2 || !record.deadline || record?.deadline && moment().unix() > record.deadline) && <div>-</div>}
                       </>
                     )}
                   </td>
                 </tr>
-              ))}
+              )) : (
+                <tr>
+                  <td colSpan={5} className="text-center text-gray-500">暂无提现记录</td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -1077,7 +1132,7 @@ function WithdrawPageContent() {
 
           {/* 表格内容 */}
           <div className="flex-1 overflow-auto">
-            {withdrawalRecords.map((record, index) => (
+            {withdrawalRecords.length > 0 ? withdrawalRecords.map((record, index) => (
               <div
                 key={index}
                 className="grid grid-cols-5 px-4 py-3 text-sm border-b text-xs"
@@ -1100,23 +1155,14 @@ function WithdrawPageContent() {
                           {processingRecord?.id === record.id || isLoading ? <i className="fas fa-spinner fa-spin"></i> : recentOperatedIds.includes(record.id) ? '刷新' : '提取'}
                         </Button>
                       }
-                      {/* {recentOperatedIds.includes(record.id) &&
-                        <Button
-                          size="small"
-                          className='!rounded-lg !text-xs !w-[80%] !bg-gray-100'
-                          loading={isLoading}
-                          disabled={isLoading}
-                          onClick={() => refreshSingleRecord(record)}
-                        >
-                          {isLoading ? <i className="fas fa-spinner fa-spin"></i> : <i className="fas fa-sync-alt"></i>}
-                        </Button>
-                      } */}
                       {(record.to_chain_tx_status === 1 || record.to_chain_tx_status === 2 || !record.deadline) && <div>-</div>}
                     </>
                   )}
                 </div>
               </div>
-            ))}
+            )) : (
+              <div className="text-center text-gray-500 py-4">暂无提现记录</div>
+            )}
           </div>
 
           {/* 分页 */}
@@ -1287,45 +1333,7 @@ function WithdrawPageContent() {
         </div>
       </Popup>
 
-      {/* 修改收益地址选择弹窗 */}
-      <Popup
-        visible={showAddressSelector}
-        onMaskClick={() => setShowAddressSelector(false)}
-        position="bottom"
-        bodyStyle={{
-          height: '50vh',
-          borderTopLeftRadius: '8px',
-          borderTopRightRadius: '8px',
-        }}
-      >
-        <div className="p-4">
-          <div className="flex justify-between items-center mb-4">
-            <span className="text-lg font-medium">选择收益地址</span>
-            <span
-              className="text-gray-500 text-2xl leading-none cursor-pointer"
-              onClick={() => setShowAddressSelector(false)}
-            >
-              ×
-            </span>
-          </div>
-
-          <div className="max-h-[50vh] overflow-auto">
-            {historyAddresses.map((item: any) => (
-              <div
-                key={item.wallet_address}
-                className={`py-3 px-4 border-b cursor-pointer ${profitAddress === item.wallet_address ? 'bg-[#E8F3FF] text-[#165DFF]' : ''
-                  }`}
-                onClick={() => {
-                  setProfitAddress(item.wallet_address)
-                  setShowAddressSelector(false)
-                }}
-              >
-                <div className="text-sm truncate">{item.wallet_address.slice(0, 10)}...{item.wallet_address.slice(-6)}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </Popup>
+      {renderAddressSelector()}
 
       <WalletModal
         isOpen={showWalletModal}
@@ -1335,7 +1343,7 @@ function WithdrawPageContent() {
       />
     </div>
   )
-} 
+}
 
 export default function WithdrawPage() {
   return (

@@ -287,6 +287,7 @@ export default function BuyForm({ visible, onClose, onSubmit, miner, discount, u
                 min={miner.MPQ}
                 className="!text-sm"
                 defaultValue={miner.MPQ}
+                onChange={(value) => form.setFieldValue('quantity', value)}
               />
               <div className="text-xs text-gray-500 mt-1">
                 {miner.MPQ}台起订

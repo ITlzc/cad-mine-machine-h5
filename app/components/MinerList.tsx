@@ -8,7 +8,7 @@ import BuyForm from './BuyForm'
 import PaymentModal from './PaymentModal'
 import { Toast, Dialog } from 'antd-mobile'
 import { toast } from 'react-hot-toast'
-import { useAccount, useWriteContract, usePublicClient } from 'wagmi'
+import { useAccount, useWriteContract, usePublicClient, useChainId, useSwitchChain } from 'wagmi'
 import { Bsc } from '../utils/bsc_config'
 import { useConnectModal } from '@rainbow-me/rainbowkit'
 import { useRouter } from 'next/navigation'
@@ -75,6 +75,13 @@ function ExpandableText({ text, maxLines = 3 }: ExpandableTextProps) {
 }
 
 export default function MinerList({ discount, userInfo }: { discount: number, userInfo: any }) {
+  const chainId = useChainId()
+  const { switchChainAsync } = useSwitchChain()
+  const { writeContractAsync } = useWriteContract()
+  const { openConnectModal } = useConnectModal()
+  const publicClient = usePublicClient()
+  const { address, isConnected } = useAccount()
+
   const navigateWithParams = useNavigateWithParams()
   const [miners, setMiners] = useState<Miner[]>([])
   const [loading, setLoading] = useState(true)
@@ -88,10 +95,7 @@ export default function MinerList({ discount, userInfo }: { discount: number, us
   } | null>(null)
   const [imageLoading, setImageLoading] = useState<Record<string, boolean>>({})
 
-  const { writeContractAsync } = useWriteContract()
-  const { address, isConnected } = useAccount()
-  const { openConnectModal } = useConnectModal()
-  const publicClient = usePublicClient()
+  
   const router = useRouter()
   const [pendingTransaction, setPendingTransaction] = useState<{
     toastId: string;
@@ -136,7 +140,7 @@ export default function MinerList({ discount, userInfo }: { discount: number, us
     //     title: '提示',
     //     content: '请向代理商购买',
     //   })
-      
+
     //   return
     // }
     setSelectedMiner(miner)
@@ -149,6 +153,10 @@ export default function MinerList({ discount, userInfo }: { discount: number, us
       toast.loading('转账处理中...', {
         id: toastId
       })
+
+      if (chainId !== Bsc.id) {
+        await switchChainAsync({ chainId: Bsc.id })
+      }
 
       // ERC20 代币合约配置
       const tokenAddress = '0x55d398326f99059fF775485246999027B3197955' as `0x${string}`
@@ -165,6 +173,7 @@ export default function MinerList({ discount, userInfo }: { discount: number, us
 
       // 将金额转换为 wei（考虑 18 位小数）
       const amountInWei = BigInt(parseFloat(amount) * Math.pow(10, 18))
+
 
       // 发起转账
       const hash = await writeContractAsync({
@@ -198,8 +207,10 @@ export default function MinerList({ discount, userInfo }: { discount: number, us
         throw new Error('交易失败')
       }
     } catch (error: any) {
-      console.error('转账失败:', error)
-      toast.dismiss(toastId)
+      if (!error.message.includes('User denied') && !error.message.includes('user rejected') && !error.message.includes('User rejected')) {
+        console.error('转账失败:', error)
+        toast.dismiss(toastId)
+      }
     } finally {
       toast.dismiss(toastId)
     }

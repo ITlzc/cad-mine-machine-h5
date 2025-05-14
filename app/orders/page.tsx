@@ -10,7 +10,7 @@ import { Toast, Dialog } from 'antd-mobile'
 import moment from 'moment'
 import { SearchBar, Button, InfiniteScroll } from 'antd-mobile'
 import { toast } from 'react-hot-toast'
-import { useAccount, useWriteContract, usePublicClient } from 'wagmi'
+import { useAccount, useWriteContract, usePublicClient, useSwitchChain, useChainId } from 'wagmi'
 import { Bsc } from '../utils/bsc_config'
 import { useConnectModal } from '@rainbow-me/rainbowkit'
 import Link from 'next/link'
@@ -35,7 +35,8 @@ function OrdersPageContent() {
   const { address, isConnected } = useAccount()
   const { openConnectModal } = useConnectModal()
   const publicClient = usePublicClient()
-
+  const { switchChainAsync } = useSwitchChain()
+  const chainId = useChainId()
   const [pendingTransaction, setPendingTransaction] = useState<{
     toastId: string;
     paymentAddress: string;
@@ -89,19 +90,19 @@ function OrdersPageContent() {
       if (!isLoadMore) {
         setLoading(true)
       }
-      
+
       const data: any = await orderService.orderList({
         page: currentPage,
         pageSize,
         orderNo: searchValue
       })
-      
+
       if (isLoadMore) {
         setOrders([...orders, ...(data.records || [])])
       } else {
         setOrders(data.records || [])
       }
-      
+
       setHasMore(data.records?.length === pageSize)
     } catch (error) {
       console.error('Failed to fetch orders:', error)
@@ -167,11 +168,15 @@ function OrdersPageContent() {
   //   }
   // }
 
-    const handleTransfer = async (toastId: string, paymentAddress: string, amount: string, orderId: string) => {
+  const handleTransfer = async (toastId: string, paymentAddress: string, amount: string, orderId: string) => {
     try {
       toast.loading('转账处理中...', {
         id: toastId
       })
+
+      if (chainId !== Bsc.id) {
+        await switchChainAsync({ chainId: Bsc.id })
+      }
 
       // ERC20 代币合约配置
       const tokenAddress = '0x55d398326f99059fF775485246999027B3197955' as `0x${string}`
@@ -206,7 +211,7 @@ function OrdersPageContent() {
 
       // 等待交易被确认
       const receipt = await publicClient.waitForTransactionReceipt({ hash })
-      
+
       if (receipt.status === 'success') {
         // 确认支付
         const response_confirm: any = await minerService.confirmPayment(orderId)
@@ -215,7 +220,7 @@ function OrdersPageContent() {
         toast.success('支付成功', {
           id: toastId
         })
-        
+
         // 刷新订单列表
         const res: any = await orderService.orderList()
         setOrders(res.records)
@@ -223,8 +228,10 @@ function OrdersPageContent() {
         throw new Error('交易失败')
       }
     } catch (error: any) {
-      console.error('转账失败:', error)
-      toast.dismiss(toastId)
+      if (!error.message.includes('User denied') && !error.message.includes('user rejected') && !error.message.includes('User rejected')) {
+        console.error('转账失败:', error)
+        toast.dismiss(toastId)
+      }
     }
   }
 
@@ -241,7 +248,7 @@ function OrdersPageContent() {
             toast.loading('请先连接钱包...', {
               id: toastId
             })
-            
+
             // 保存待处理的交易信息
             setPendingTransaction({
               toastId,
@@ -249,7 +256,7 @@ function OrdersPageContent() {
               amount: order.amount,
               orderId: order.id
             })
-            
+
             // 打开 RainbowKit 钱包连接模态框
             openConnectModal()
             return
@@ -262,7 +269,7 @@ function OrdersPageContent() {
             order.amount,
             order.id
           )
-          
+
         } catch (error: any) {
           console.error('支付失败:', error)
         } finally {
@@ -317,7 +324,7 @@ function OrdersPageContent() {
       case 5:
         return <span className="text-yellow-600 bg-yellow-50 px-2 py-1 rounded">待验证</span>
       case 6:
-          return <span className="text-yellow-600 bg-yellow-50 px-2 py-1 rounded">机器准备中</span>
+        return <span className="text-yellow-600 bg-yellow-50 px-2 py-1 rounded">机器准备中</span>
       case 7:
         return <span className="text-green-600 bg-green-50 px-2 py-1 rounded">机器已发货</span>
       case 8:
@@ -363,7 +370,7 @@ function OrdersPageContent() {
             onChange={(value) => setSearchValue(value)}
             className="flex-1 h-full"
           />
-          <button 
+          <button
             onClick={() => handleSearch()}
             className="!bg-[#F5B544] !text-white !rounded-lg !border-none !py-2 !px-4 !text-sm"
           >
@@ -400,7 +407,7 @@ function OrdersPageContent() {
               </div>
             </div>
 
-            {(order.status === 0 ) && (
+            {(order.status === 0) && (
               <div className="grid grid-cols-2 gap-3 mt-4">
                 {order.status === 0 && (
                   <Button
@@ -438,7 +445,7 @@ function OrdersPageContent() {
             )}
           </div>
         ))}
-        
+
         <InfiniteScroll loadMore={loadMore} hasMore={hasMore} />
       </div>
 
@@ -462,7 +469,7 @@ function OrdersPageContent() {
 
     </div>
   )
-} 
+}
 
 export default function OrdersPage() {
   return (
