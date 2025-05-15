@@ -125,7 +125,6 @@ function WithdrawPageContent() {
 
   const getAvailableBalance = async () => {
     try {
-      setPageLoading(true)
       const cadClient = createPublicClient({
         chain: CAD_CHAIN,
         transport: http()
@@ -151,8 +150,6 @@ function WithdrawPageContent() {
       }
     } catch (error) {
       console.error('获取可提现金额失败:', error)
-    } finally {
-      setPageLoading(false)
     }
   }
 
@@ -219,7 +216,6 @@ function WithdrawPageContent() {
   // getWithdrawalRecords
   const getWithdrawalRecords = async (page = 1, startDate: Date | null = null, endDate: Date | null = null) => {
     try {
-      setPageLoading(true)
       const res: any = await userService.getWithdrawalRecords(
         page,
         pagination.pageSize,
@@ -236,8 +232,6 @@ function WithdrawPageContent() {
       }
     } catch (error) {
       console.error('获取提现记录失败:', error)
-    } finally {
-      setPageLoading(false)
     }
   }
 
@@ -544,6 +538,7 @@ function WithdrawPageContent() {
           setTipText('')
           getWithdrawalRecords(1)
         }
+        await getAvailableBalance()
       } else {
         setStepStatus('wait')
       }
@@ -994,6 +989,7 @@ function WithdrawPageContent() {
                 try {
                   setIsLoading(true)
                   await getWithdrawalRecords()
+                  await getAvailableBalance()
                   setIsLoading(false)
                 } catch (error) {
                   console.error('刷新失败:', error)
