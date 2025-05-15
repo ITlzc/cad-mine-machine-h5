@@ -17,7 +17,7 @@ function AuthCallbackPageContent() {
         // Fetch user data from backend API
         const access_token = await get_access_token();
         if (!access_token) {
-            navigateWithParams('/login', 'push');
+            navigateWithParams('/login/', 'push');
             return;
         }
         const response = await fetch(`/api/v1/user/${user.id}`, {
@@ -110,12 +110,12 @@ function AuthCallbackPageContent() {
           navigateWithParams('/', 'push');
         } else {
           console.log('appUser.is_activated 3333');
-          navigateWithParams('/login', 'push');
+          navigateWithParams('/login/', 'push');
         }
       } catch (error) {
         console.log('appUser.is_activated 4444',error);
         console.error('Error in auth callback:', error);
-        navigateWithParams('/login', 'push');
+        navigateWithParams('/login/', 'push');
       }
     };
 
