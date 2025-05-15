@@ -451,7 +451,7 @@ function SettingsPageContent() {
   }, [])
 
   useEffect(() => {
-    if (userInfoByFetch?.role === 2) {
+    if (userInfoByFetch?.role === 2 || userInfoByFetch?.role === 1) {
       fetchWithdrawalRecords(1)
       fetchInviteRecords(1)
       userService.getTotalCommission().then((res: any) => {
@@ -595,7 +595,7 @@ function SettingsPageContent() {
         </div>
       </div>
 
-      {userInfoByFetch?.role === 2 && <div className="px-4 py-4 bg-white mb-4">
+      {(userInfoByFetch?.role === 2 || userInfoByFetch?.role === 1) && <div className="px-4 py-4 bg-white mb-4">
         <div className="grid grid-cols-3 gap-3 mb-4">
           <div className="bg-[#FFB400] flex flex-col items-center justify-start rounded-lg py-3 text-white shadow-sm">
             <div className="text-sm mb-2">已邀请人数</div>
@@ -659,7 +659,7 @@ function SettingsPageContent() {
         </div>
 
 
-        {userInfoByFetch?.role === 2 && <>
+        {(userInfoByFetch?.role === 2 || userInfoByFetch?.role === 1) && <>
           <div className="px-4 py-4">
             <div className="flex justify-between items-center mb-2">
               <span className="text-base font-medium text-gray-900">邀请链接</span>
@@ -1118,7 +1118,7 @@ function SettingsPageContent() {
         }}
       />
 
-      {userInfoByFetch?.role === 2 && renderWithdrawModal()}
+      {(userInfoByFetch?.role === 2 || userInfoByFetch?.role === 1) && renderWithdrawModal()}
     </div>
   )
 }
