@@ -13,6 +13,7 @@ import { toast } from 'react-hot-toast'
 import { useAccount, useWriteContract, usePublicClient, useSwitchChain, useChainId } from 'wagmi'
 import { mainnet } from 'viem/chains'
 import { Bsc } from '../utils/bsc_config'
+import { createPublicClient, http } from 'viem'
 import { useConnectModal } from '@rainbow-me/rainbowkit'
 import Link from 'next/link'
 import OrderDetailModal from '../components/OrderDetailModal'
@@ -176,13 +177,22 @@ function OrdersPageContent() {
       toast.loading('转账处理中...', {
         id: toastId
       })
+      let client = null
 
       if (chainId !== Bsc.id && currency_type === 'BSC_USDT') {
         await switchChainAsync({ chainId: Bsc.id })
+        client = createPublicClient({
+          chain: Bsc,
+          transport: http()
+        })
       }
 
       if (chainId !== mainnet.id && currency_type === 'ETH_CAD') {
         await switchChainAsync({ chainId: mainnet.id })
+        client = createPublicClient({
+          chain: mainnet,
+          transport: http()
+        })
       }
 
       // ERC20 代币合约配置
@@ -219,7 +229,7 @@ function OrdersPageContent() {
       })
 
       // 等待交易被确认
-      const receipt = await publicClient.waitForTransactionReceipt({ hash })
+      const receipt = await client?.waitForTransactionReceipt({ hash })
 
       if (receipt.status === 'success') {
         // 确认支付

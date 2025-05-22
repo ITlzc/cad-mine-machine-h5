@@ -11,6 +11,7 @@ import { toast } from 'react-hot-toast'
 import { useAccount, useWriteContract, usePublicClient, useChainId, useSwitchChain } from 'wagmi'
 import { mainnet } from 'viem/chains'
 import { Bsc } from '../utils/bsc_config'
+import { createPublicClient, http } from 'viem'
 import { useConnectModal } from '@rainbow-me/rainbowkit'
 import { useRouter } from 'next/navigation'
 import { useNavigateWithParams } from '../hooks/useNavigateWithParams'
@@ -155,13 +156,22 @@ export default function MinerList({ discount, userInfo }: { discount: number, us
       toast.loading('转账处理中...', {
         id: toastId
       })
+      let client = null
 
       if (chainId !== Bsc.id && selectedMiner.currency_type === 'BSC_USDT') {
         await switchChainAsync({ chainId: Bsc.id })
+        client = createPublicClient({
+          chain: Bsc,
+          transport: http()
+        })
       }
 
       if (chainId !== mainnet.id && selectedMiner.currency_type === 'ETH_CAD') {
         await switchChainAsync({ chainId: mainnet.id })
+        client = createPublicClient({
+          chain: mainnet,
+          transport: http()
+        })
       }
 
       // ERC20 代币合约配置
@@ -200,7 +210,7 @@ export default function MinerList({ discount, userInfo }: { discount: number, us
       })
 
       // 等待交易被确认
-      const receipt = await publicClient.waitForTransactionReceipt({ hash })
+      const receipt = await client?.waitForTransactionReceipt({ hash })
 
       if (receipt.status === 'success') {
         // 确认支付
