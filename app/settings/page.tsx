@@ -10,6 +10,7 @@ import WalletModal from '../components/WalletModal'
 import moment from 'moment'
 import { useNavigateWithParams } from '../hooks/useNavigateWithParams'
 import { useWriteContract, usePublicClient, useSwitchChain, useAccount, useConnect } from 'wagmi'
+import { createPublicClient, http } from 'viem'
 import { ethers } from 'ethers'
 // import { Bsc } from '../utils/bsc_config'
 import { BscTest } from '../utils/bsc_test_config'
@@ -20,13 +21,11 @@ const REBATE_CONTRACT = '0xae5630AdDF965c51abAC1C3bd97E16aF1E0cA166'
 
 function SettingsPageContent() {
   const { address } = useAccount()
-  const { connect } = useConnect()
   const [emailAddress, setEmailAddress] = useState('')
   const [userInfo, setUserInfo] = useState<any>({})
   const [walletAddress, setWalletAddress] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [isWithdrawing, setIsWithdrawing] = useState(false)
-  const router = useRouter()
   const navigateWithParams = useNavigateWithParams()
 
   const { disconnectAsync } = useDisconnect()
@@ -220,15 +219,14 @@ function SettingsPageContent() {
         })
         return
       }
-      setIsWithdrawing(true)
-      if (record) {
-        setProcessingRecord(record)
-      }
       if (publicClient.chain !== BscTest) {
         await switchChainAsync({ chainId: BscTest.id })
       }
 
+      setIsWithdrawing(true)
+
       if (record) {
+        setProcessingRecord(record)
         handleWithdrawContract(record)
         return
       }
@@ -253,7 +251,7 @@ function SettingsPageContent() {
         }
 
         if (!withdrawData?.signature || !withdrawData?.nonce) {
-          throw new Error('获取签名超时，请稍后在提现记录中查看状态')
+          throw new Error('获取签名超时，可在提现记录中继续提现')
         }
         handleWithdrawContract(withdrawData)
       }
@@ -262,7 +260,7 @@ function SettingsPageContent() {
       if (!error.message.includes('User denied') && !error.message.includes('user rejected') && !error.message.includes('User rejected')) {
         console.error('提现失败:', error)
         Toast.show({
-          content: error.message || '提现失败',
+          content: '提现失败：' + error.message,
           position: 'center',
         })
       }
@@ -282,6 +280,10 @@ function SettingsPageContent() {
     try {
       setTipText('交易确认中...')
       console.log('withdrawData', withdrawData)
+      const client = createPublicClient({
+        chain: BscTest,
+        transport: http()
+      })
       const hash = await writeContractAsync({
         abi: RebateABI.abi,
         address: REBATE_CONTRACT,
@@ -290,11 +292,11 @@ function SettingsPageContent() {
         chain: BscTest,
         account: address as `0x${string}`
       })
-      const receipt = await publicClient.waitForTransactionReceipt({ hash })
+      const receipt = await client.waitForTransactionReceipt({ hash })
       console.log(receipt)
 
       if (receipt.status === 'success') {
-        setTipText('提现成功，状态更新中...')
+        setTipText('交易成功，正在等待状态更新...')
         // 开始轮询检查记录状态
         let retryCount = 0
         const maxRetries = 30 // 最多轮询30次
@@ -333,7 +335,7 @@ function SettingsPageContent() {
           fetchWithdrawalRecords(1)
         } else {
           Toast.show({
-            content: '提现成功，请稍后在提现记录中查看状态',
+            content: '提现成功，请刷新提现记录更新状态',
             position: 'center',
           })
           setTipText('')
@@ -353,24 +355,48 @@ function SettingsPageContent() {
         }
       } else {
         Toast.show({
-          content: '合约调用失败：' + receipt.status,
+          content: '交易已提交，可刷新提现记录查看状态',
           position: 'center',
+          duration: 3000
         })
+
         setTipText('')
+        setShowWithdrawModal(false)
+        setWithdrawAddress('')
+        setWithdrawAmount('')
         setIsWithdrawing(false)
         setProcessingRecord(null)
+        // 刷新数据
+        userService.getTotalCommission().then((res: any) => {
+          setTotalCommission(res?.total_commission)
+          setWithdrawnCommission(res?.withdrawn_amount)
+          setInviteNum(res?.user_count)
+        })
+        // 刷新提现记录
+        fetchWithdrawalRecords(1)
       }
     } catch (error) {
       if (!error.message.includes('User denied') && !error.message.includes('user rejected') && !error.message.includes('User rejected')) {
-        console.error('提现合约调用失败:', error)
+        console.error('交易未确认:', error)
         Toast.show({
-          content: error.message || '提现失败',
+          content: '交易未确认：' + error.message,
           position: 'center',
         })
       }
       setTipText('')
       setIsWithdrawing(false)
       setProcessingRecord(null)
+      setShowWithdrawModal(false)
+      setWithdrawAddress('')
+      setWithdrawAmount('')
+      // 刷新数据
+      userService.getTotalCommission().then((res: any) => {
+        setTotalCommission(res?.total_commission)
+        setWithdrawnCommission(res?.withdrawn_amount)
+        setInviteNum(res?.user_count)
+      })
+      // 刷新提现记录
+      fetchWithdrawalRecords(1)
     }
   }
 
@@ -502,16 +528,40 @@ function SettingsPageContent() {
             <Input
               placeholder="请输入提现地址"
               value={withdrawAddress}
-              onChange={setWithdrawAddress}
+              onChange={(value) => {
+                setWithdrawAddress(value);
+              }}
+              onBlur={(e) => {
+                const value = e.target.value;
+                if (value && !ethers.utils.isAddress(value)) {
+                  Toast.show({
+                    content: '请输入有效的钱包地址',
+                    position: 'center',
+                  })
+                  setWithdrawAddress('');
+                }
+              }}
               className="!h-11 !border-b"
             />
             <Input
               type="number"
-              placeholder="请输入提现数量"
+              placeholder="请输入提现金额"
               value={withdrawAmount}
-              onChange={setWithdrawAmount}
+              onChange={(value) => {
+                if (Number(value) > 100) {
+                  Toast.show({
+                    content: '单次提现金额不能大于100 USDT',
+                    position: 'center',
+                  })
+                  return;
+                }
+                setWithdrawAmount(value);
+              }}
               className="!h-11 !border-b"
             />
+            <div className="text-xs text-gray-500">
+              可提现金额：{totalCommission - withdrawnCommission} USDT （单次最高100 USDT）
+            </div>
             <Button
               block
               color="primary"
@@ -533,9 +583,9 @@ function SettingsPageContent() {
                   })
                   return
                 }
-                if (amount > totalCommission) {
+                if (amount > totalCommission - withdrawnCommission) {
                   Toast.show({
-                    content: '提现金额不能大于累计返佣金额',
+                    content: '提现金额不能大于可提现金额',
                     position: 'center',
                   })
                   return
@@ -613,12 +663,15 @@ function SettingsPageContent() {
 
         <div className="mt-4">
           <button
-            onClick={() => {
+            onClick={async () => {
               if (typeof window.ethereum !== 'undefined' && address) {
+                if (publicClient.chain !== BscTest) {
+                  await switchChainAsync({ chainId: BscTest.id })
+                }
                 setShowWithdrawModal(true)
               }
             }}
-            disabled={typeof window.ethereum === 'undefined' || !address || !totalCommission || totalCommission === 0}
+            disabled={typeof window.ethereum === 'undefined' || !address || !totalCommission || Number(totalCommission) === 0 || Number(totalCommission) === Number(withdrawnCommission)}
             className="w-full bg-[#165DFF] text-white py-2.5 rounded-lg flex items-center justify-center text-base disabled:opacity-50"
           >
             <i className="fas fa-wallet mr-2"></i>

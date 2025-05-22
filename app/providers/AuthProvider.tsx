@@ -49,7 +49,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Fetch user data from backend API
       const access_token = await get_access_token();
       if (!access_token) {
-        navigateWithParams('/login/', 'push');
+        navigateWithParams('/login', 'push');
         return;
       }
       const response = await fetch(`/api/v1/user/${user.id}`, {
@@ -84,7 +84,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const checkAuthAndRedirect = async () => {
       const access_token = await get_access_token();
       if (!access_token) {
-        navigateWithParams('/login/', 'push');
+        navigateWithParams('/login', 'push');
         return;
       }
 
@@ -123,7 +123,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           navigateWithParams(`/login?referral_id=${referralId}`, 'push');
         } else {
           //   console.log('referralId 2222');
-          navigateWithParams('/login/', 'push');
+          navigateWithParams('/login', 'push');
         }
       } else if (currentUser) {
         // Check user's status
@@ -152,7 +152,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = () => {
     setUser(null);
     localStorage.removeItem('user');
-    navigateWithParams('/login/', 'push');
+    navigateWithParams('/login', 'push');
   };
 
   const value = {

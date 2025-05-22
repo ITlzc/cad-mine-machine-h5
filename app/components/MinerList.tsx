@@ -9,6 +9,7 @@ import PaymentModal from './PaymentModal'
 import { Toast, Dialog } from 'antd-mobile'
 import { toast } from 'react-hot-toast'
 import { useAccount, useWriteContract, usePublicClient, useChainId, useSwitchChain } from 'wagmi'
+import { mainnet } from 'viem/chains'
 import { Bsc } from '../utils/bsc_config'
 import { useConnectModal } from '@rainbow-me/rainbowkit'
 import { useRouter } from 'next/navigation'
@@ -83,9 +84,9 @@ export default function MinerList({ discount, userInfo }: { discount: number, us
   const { address, isConnected } = useAccount()
 
   const navigateWithParams = useNavigateWithParams()
-  const [miners, setMiners] = useState<Miner[]>([])
+  const [miners, setMiners] = useState<any>([])
   const [loading, setLoading] = useState(true)
-  const [selectedMiner, setSelectedMiner] = useState<Miner | null>(null)
+  const [selectedMiner, setSelectedMiner] = useState<any>(null)
   const [showBuyForm, setShowBuyForm] = useState(false)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [paymentInfo, setPaymentInfo] = useState<{
@@ -143,6 +144,7 @@ export default function MinerList({ discount, userInfo }: { discount: number, us
 
     //   return
     // }
+    console.log(miner)
     setSelectedMiner(miner)
     setShowBuyForm(true)
   }
@@ -154,12 +156,19 @@ export default function MinerList({ discount, userInfo }: { discount: number, us
         id: toastId
       })
 
-      if (chainId !== Bsc.id) {
+      if (chainId !== Bsc.id && selectedMiner.currency_type === 'BSC_USDT') {
         await switchChainAsync({ chainId: Bsc.id })
       }
 
+      if (chainId !== mainnet.id && selectedMiner.currency_type === 'ETH_CAD') {
+        await switchChainAsync({ chainId: mainnet.id })
+      }
+
       // ERC20 代币合约配置
-      const tokenAddress = '0x55d398326f99059fF775485246999027B3197955' as `0x${string}`
+      const bsc_usdt = '0x55d398326f99059fF775485246999027B3197955' as `0x${string}`
+      const eth_cad = '0x4349929808E515936A68903F6085F5e2B143ff3d' as `0x${string}`
+      const tokenAddress = selectedMiner.currency_type === 'BSC_USDT' ? bsc_usdt : eth_cad
+
       const tokenABI = [{
         name: 'transfer',
         type: 'function',
@@ -181,7 +190,7 @@ export default function MinerList({ discount, userInfo }: { discount: number, us
         address: tokenAddress,
         functionName: 'transfer',
         args: [paymentAddress as `0x${string}`, amountInWei],
-        chain: Bsc,
+        chain: selectedMiner.currency_type === 'BSC_USDT' ? Bsc : mainnet,
         account: address
       })
 
@@ -227,7 +236,7 @@ export default function MinerList({ discount, userInfo }: { discount: number, us
         // TODO: 调用创建订单接口
         console.log('Creating order:', orderData)
 
-        const response: any = await minerService.createOrder({
+        let params = {
           machine_id: orderData.minerId,
           pool_id: orderData.poolId,
           quantity: orderData.quantity,
@@ -238,7 +247,16 @@ export default function MinerList({ discount, userInfo }: { discount: number, us
             postcode: orderData.postcode
           },
           inviter_code: values.inviteCode
-        })
+        }
+
+        let params_cloud = {
+          machine_id: orderData.minerId,
+          pool_id: orderData.poolId,
+          quantity: orderData.quantity,
+        }
+        
+
+        const response: any = await minerService.createOrder(selectedMiner.good_type === 1 ? params : params_cloud)
 
         // 保存支付信息
         setPaymentInfo({
@@ -255,11 +273,11 @@ export default function MinerList({ discount, userInfo }: { discount: number, us
         })
 
         setShowBuyForm(false)
-        setSelectedMiner(null)
 
 
+        console.log(window.ethereum)
         // 检测是否为钱包环境
-        if (typeof window.ethereum !== 'undefined') {
+        if (typeof window.ethereum !== 'undefined' && window.ethereum) {
           const toastId = toast.loading('准备支付...')
           try {
             // 检查钱包连接状态
@@ -294,6 +312,7 @@ export default function MinerList({ discount, userInfo }: { discount: number, us
           } finally {
             setIsSubmitting(false)
             toast.dismiss(toastId)
+            setSelectedMiner(null)
           }
         } else {
           // 非钱包环境或未连接钱包，显示常规支付弹窗
@@ -302,7 +321,6 @@ export default function MinerList({ discount, userInfo }: { discount: number, us
         }
       }
       setShowBuyForm(false)
-      setSelectedMiner(null)
     } catch (error) {
       console.error('Failed to create order:', error)
       Toast.show({
@@ -397,14 +415,15 @@ export default function MinerList({ discount, userInfo }: { discount: number, us
                 {discount && Number(discount) > 0 && Number(discount) < 1 ? (
                   <div className="flex flex-col items-start">
                     <span className="text-sm text-gray-400 line-through">
-                      原价：${miner.price} U
+                      原价：{miner.currency_type === 'BSC_USDT' ? `$${miner.price} U` : `${miner.price} CAD`}
                     </span>
                     <span className="text-lg font-bold text-[#F5B544]">
-                      ${(miner.price * (discount))} U
+                      {miner.currency_type === 'BSC_USDT' ? `$${(miner.price * (discount))} U` : `${(miner.price * (discount))} CAD`}
                     </span>
                   </div>
                 ) : <span className="text-[#F5B544] text-lg">
-                  ${miner.price} U
+                  {miner.currency_type === 'BSC_USDT' ? `$${miner.price} U` : `${miner.price} CAD`}
+                  <span className='text-xs text-gray-400 ml-2'>({miner.currency_type})</span>
                 </span>}
                 <Button
                   className="!bg-[#F5B544] !text-white rounded-full px-6 shadow-[0_2px_8px_0_rgba(245,181,68,0.35)]"
@@ -430,13 +449,17 @@ export default function MinerList({ discount, userInfo }: { discount: number, us
         />
       )}
 
-      <PaymentModal
+      {showPaymentModal && selectedMiner && <PaymentModal
         isOpen={showPaymentModal}
-        onClose={() => setShowPaymentModal(false)}
+        onClose={() => {
+          setShowPaymentModal(false)
+          setSelectedMiner(null)
+        }}
         paymentAddress={paymentInfo?.address || ''}
         minAmount={paymentInfo?.amount || 0}
         expiration_time={selectedMiner?.expiration_time || ''}
-      />
+        miner={selectedMiner}
+      />}
     </>
   )
 } 

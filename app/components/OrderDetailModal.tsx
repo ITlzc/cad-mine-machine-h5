@@ -34,7 +34,7 @@ export default function OrderDetailModal({
   const [updating, setUpdating] = useState(false)
   const [showMacInput, setShowMacInput] = useState(false)
   const [macAddress, setMacAddress] = useState('')
-  const [mac_selected_status,set_mac_selected_status] = useState(-1)
+  const [mac_selected_status, set_mac_selected_status] = useState(-1)
 
   const statusOptions = [
     { label: '机器准备中', value: 6 },
@@ -103,8 +103,8 @@ export default function OrderDetailModal({
     setUpdating(true)
     try {
       // @ts-ignore
-      console.log("handleMacConfirm",selectedStatus)
-      console.log("mac_selected_status",mac_selected_status)
+      console.log("handleMacConfirm", selectedStatus)
+      console.log("mac_selected_status", mac_selected_status)
       let status = mac_selected_status
       if (typeof status == 'string') {
         status = parseInt(status)
@@ -226,7 +226,7 @@ export default function OrderDetailModal({
                 )}
                 <div className="flex justify-between">
                   <span>订单金额</span>
-                  <span className="text-[#FFD700]">${orderDetail?.amount} U</span>
+                  <span className="text-[#FFD700]">{orderDetail?.machine_info?.currency_type === 'BSC_USDT' ? `$${orderDetail?.amount} U` : `${orderDetail?.amount} CAD`}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>订单数量</span>
@@ -266,7 +266,7 @@ export default function OrderDetailModal({
               </div>
             </div>
             {/* 收货信息 */}
-            <div className="bg-white rounded-lg p-4 mb-4">
+            {orderDetail?.machine_info.good_type === 1 && <div className="bg-white rounded-lg p-4 mb-4">
               <h2 className="text-base font-medium mb-3">收货信息</h2>
               <div className="space-y-2 text-sm text-gray-600">
                 <div className="flex justify-between">
@@ -287,15 +287,15 @@ export default function OrderDetailModal({
                   <span>{orderDetail?.shipping_info?.postcode || '-'}</span>
                 </div>
               </div>
-            </div>
+            </div>}
             {/* 矿机信息 */}
             <div className="bg-white rounded-lg p-4 mb-4">
               <h2 className="text-base font-medium mb-3">矿机信息</h2>
               <div className="flex space-x-3">
                 <img
-                  src="https://ai-public.mastergo.com/ai/img_res/fbceaee30a6643cdf34e60ea3ff5b983.jpg"
+                  src={orderDetail?.machine_info.image}
+                  alt={orderDetail?.machine_info?.title}
                   className="w-24 h-24 object-cover rounded-lg"
-                  alt="EpochMiner"
                 />
                 <div className="flex-1">
                   <h3 className="text-base font-medium">{orderDetail?.machine_info?.title || '-'}</h3>
@@ -311,9 +311,9 @@ export default function OrderDetailModal({
               <h2 className="text-base font-medium mb-3">矿池信息</h2>
               <div className="flex items-center space-x-3">
                 <img
-                  src="https://ai-public.mastergo.com/ai/img_res/5e424c56209dd0d51666a340f457a7e2.jpg"
+                  src={orderDetail?.pool_info.logo}
+                  alt={orderDetail?.pool_info.name}
                   className="w-12 h-12 rounded-lg"
-                  alt="SparkPool"
                 />
                 <div>
                   <h3 className="font-medium">{orderDetail?.pool_info?.name || '-'}</h3>

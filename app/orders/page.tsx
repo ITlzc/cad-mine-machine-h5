@@ -11,6 +11,7 @@ import moment from 'moment'
 import { SearchBar, Button, InfiniteScroll } from 'antd-mobile'
 import { toast } from 'react-hot-toast'
 import { useAccount, useWriteContract, usePublicClient, useSwitchChain, useChainId } from 'wagmi'
+import { mainnet } from 'viem/chains'
 import { Bsc } from '../utils/bsc_config'
 import { useConnectModal } from '@rainbow-me/rainbowkit'
 import Link from 'next/link'
@@ -42,6 +43,7 @@ function OrdersPageContent() {
     paymentAddress: string;
     amount: string;
     orderId: string;
+    currency_type: string;
   } | null>(null)
 
   const [showOrderDetailModal, setShowOrderDetailModal] = useState(false)
@@ -69,7 +71,8 @@ function OrdersPageContent() {
         pendingTransaction.toastId,
         pendingTransaction.paymentAddress,
         pendingTransaction.amount,
-        pendingTransaction.orderId
+        pendingTransaction.orderId,
+        pendingTransaction.currency_type
       )
       setPendingTransaction(null)
     }
@@ -168,18 +171,24 @@ function OrdersPageContent() {
   //   }
   // }
 
-  const handleTransfer = async (toastId: string, paymentAddress: string, amount: string, orderId: string) => {
+  const handleTransfer = async (toastId: string, paymentAddress: string, amount: string, orderId: string, currency_type: string) => {
     try {
       toast.loading('转账处理中...', {
         id: toastId
       })
 
-      if (chainId !== Bsc.id) {
+      if (chainId !== Bsc.id && currency_type === 'BSC_USDT') {
         await switchChainAsync({ chainId: Bsc.id })
       }
 
+      if (chainId !== mainnet.id && currency_type === 'ETH_CAD') {
+        await switchChainAsync({ chainId: mainnet.id })
+      }
+
       // ERC20 代币合约配置
-      const tokenAddress = '0x55d398326f99059fF775485246999027B3197955' as `0x${string}`
+      const bsc_usdt = '0x55d398326f99059fF775485246999027B3197955' as `0x${string}`
+      const eth_cad = '0x4349929808E515936A68903F6085F5e2B143ff3d' as `0x${string}`
+      const tokenAddress = currency_type === 'BSC_USDT' ? bsc_usdt : eth_cad
       const tokenABI = [{
         name: 'transfer',
         type: 'function',
@@ -200,7 +209,7 @@ function OrdersPageContent() {
         address: tokenAddress,
         functionName: 'transfer',
         args: [paymentAddress as `0x${string}`, amountInWei],
-        chain: Bsc,
+        chain: currency_type === 'BSC_USDT' ? Bsc : mainnet,
         account: address
       })
 
@@ -240,7 +249,7 @@ function OrdersPageContent() {
       setProcessingOrders(prev => ({ ...prev, [order.id]: true }))
 
       // 检测是否为钱包环境
-      if (typeof window.ethereum !== 'undefined') {
+      if (typeof window.ethereum !== 'undefined' && window.ethereum) {
         const toastId = toast.loading('准备支付...')
         try {
           // 检查钱包连接状态
@@ -254,7 +263,8 @@ function OrdersPageContent() {
               toastId,
               paymentAddress: order.payment_address,
               amount: order.amount,
-              orderId: order.id
+              orderId: order.id,
+              currency_type: order.machine_info.currency_type
             })
 
             // 打开 RainbowKit 钱包连接模态框
@@ -267,7 +277,8 @@ function OrdersPageContent() {
             toastId,
             order.payment_address,
             order.amount,
-            order.id
+            order.id,
+            order.machine_info.currency_type
           )
 
         } catch (error: any) {
@@ -395,7 +406,7 @@ function OrdersPageContent() {
 
             <div className="flex justify-between items-center mb-3">
               <div className="text-[#F5B544] font-medium">
-                支付金额： ${order.amount.toFixed(2)} U
+                支付金额： {order.machine_info?.currency_type === 'BSC_USDT' ? `$${order.amount.toFixed(2)} U` : `${order.amount.toFixed(2)} CAD`}
               </div>
               <div className="flex items-center gap-2">
                 <div className={`rounded text-xs ${getStatusClass(order.status)}`}>
@@ -456,6 +467,7 @@ function OrdersPageContent() {
         paymentAddress={currentOrder?.payment_address || ''}
         expiration_time={currentOrder?.expiration_time || ''}
         minAmount={currentOrder?.amount || 1}
+        miner={currentOrder?.machine_info}
       />
 
       {showOrderDetailModal && <OrderDetailModal

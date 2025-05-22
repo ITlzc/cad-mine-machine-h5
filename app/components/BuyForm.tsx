@@ -47,14 +47,7 @@ interface Props {
   visible: boolean
   onClose: () => void
   onSubmit: (values: any) => void
-  miner: {
-    id: string
-    title: string
-    image: string
-    description: string
-    price: number
-    MPQ: number
-  }
+  miner: any
   discount: number
   userInfo: any
 }
@@ -153,14 +146,14 @@ export default function BuyForm({ visible, onClose, onSubmit, miner, discount, u
                 {discount && Number(discount) > 0 && Number(discount) < 1 ? (
                   <div className="flex flex-col items-start">
                     <span className="text-sm text-gray-400 line-through">
-                      原价：${miner.price} U
+                      原价：{miner.currency_type === 'BSC_USDT' ? `$${miner.price} U` : `${miner.price} CAD`}
                     </span>
                     <span className="text-base font-bold text-[#F5B544]">
-                      ${miner.price * (discount)} U
+                      {miner.currency_type === 'BSC_USDT' ? `$${miner.price * (discount)} U` : `${miner.price * (discount)} CAD`}
                     </span>
                   </div>
                 ) : <span className="text-base font-bold text-[#F5B544]">
-                  ${miner.price} U
+                  {miner.currency_type === 'BSC_USDT' ? `$${miner.price} U` : `${miner.price} CAD`}
                 </span>}
               </div>
             </div>
@@ -294,93 +287,97 @@ export default function BuyForm({ visible, onClose, onSubmit, miner, discount, u
               </div>
             </Form.Item>
 
-            <Form.Item
-              name="receiver"
-              label="收货人"
-              rules={[{ required: true, message: '请输入收货人姓名' }]}
-              className="!text-base adm-form-item-horizontal"
-            >
-              <Input placeholder="请填写收货人姓名" className="!text-sm !placeholder:text-xs" />
-            </Form.Item>
+            {miner.good_type === 1 && <>
+              <Form.Item
+                name="receiver"
+                label="收货人"
+                rules={[{ required: true, message: '请输入收货人姓名' }]}
+                className="!text-base adm-form-item-horizontal"
+              >
+                <Input placeholder="请填写收货人姓名" className="!text-sm !placeholder:text-xs" />
+              </Form.Item>
 
-            <Form.Item
-              name="phone"
-              label="手机号码"
-              rules={[
-                { required: true, message: '请输入手机号码' },
-                {
-                  validator: (_, value) => {
-                    if (!phoneNumber || !isPhoneValid(phoneNumber)) {
-                      return Promise.reject('请输入有效的手机号码')
+              <Form.Item
+                name="phone"
+                label="手机号码"
+                rules={[
+                  { required: true, message: '请输入手机号码' },
+                  {
+                    validator: (_, value) => {
+                      if (!phoneNumber || !isPhoneValid(phoneNumber)) {
+                        return Promise.reject('请输入有效的手机号码')
+                      }
+                      return Promise.resolve()
                     }
-                    return Promise.resolve()
                   }
-                }
-              ]}
-              className="!text-base adm-form-item-horizontal"
-            >
-              <div className="w-full">
-                <PhoneInput
-                  defaultCountry="cn"
-                  value={phoneNumber}
-                  onChange={(phone) => setPhoneNumber(phone)}
-                  inputClassName="!text-[16px] !leading-[16px] !w-full !h-[40px] !px-3 !py-2 !border !border-gray-300 !rounded-lg"
-                  countrySelectorStyleProps={{
-                    buttonClassName: "!h-[40px] !px-3 !py-2 !border !border-gray-300 !rounded-lg !mr-2",
-                    dropdownStyleProps: {
-                      className: "!text-[16px]"
-                    }
-                  }}
-                  preferredCountries={['cn', 'hk', 'mo', 'tw', 'us', 'gb', 'jp', 'kr', 'sg']}
-                  inputProps={{
-                    autoComplete: "off",
-                    autoCorrect: "off",
-                    autoCapitalize: "off",
-                    spellCheck: "false",
-                    style: {
-                      fontSize: '16px',
-                      lineHeight: '16px'
-                    }
-                  }}
-                />
-              </div>
-            </Form.Item>
+                ]}
+                className="!text-base adm-form-item-horizontal"
+              >
+                <div className="w-full">
+                  <PhoneInput
+                    defaultCountry="cn"
+                    value={phoneNumber}
+                    onChange={(phone) => setPhoneNumber(phone)}
+                    inputClassName="!text-[16px] !leading-[16px] !w-full !h-[40px] !px-3 !py-2 !border !border-gray-300 !rounded-lg"
+                    countrySelectorStyleProps={{
+                      buttonClassName: "!h-[40px] !px-3 !py-2 !border !border-gray-300 !rounded-lg !mr-2",
+                      dropdownStyleProps: {
+                        className: "!text-[16px]"
+                      }
+                    }}
+                    preferredCountries={['cn', 'hk', 'mo', 'tw', 'us', 'gb', 'jp', 'kr', 'sg']}
+                    inputProps={{
+                      autoComplete: "off",
+                      autoCorrect: "off",
+                      autoCapitalize: "off",
+                      spellCheck: "false",
+                      style: {
+                        fontSize: '16px',
+                        lineHeight: '16px'
+                      }
+                    }}
+                  />
+                </div>
+              </Form.Item>
 
-            <Form.Item
-              name="address"
-              label="收货地址"
-              rules={[{ required: true, message: '请输入详细地址' }]}
-              className="!text-base adm-form-item-horizontal"
-            >
-              <TextArea
-                placeholder="请填写详细地址"
-                rows={3}
-                className="!text-sm placeholder:text-xs"
-              />
-            </Form.Item>
-            <Form.Item
-              name="postcode"
-              label="邮政编码"
-              rules={[
-                { pattern: /^[0-9]{6}$/, message: '请输入正确的邮政编码' }
-              ]}
-              className="!text-base adm-form-item-horizontal"
-            >
-              <Input placeholder="请填写邮政编码" className="!text-sm placeholder:text-xs" />
-            </Form.Item>
+              <Form.Item
+                name="address"
+                label="收货地址"
+                rules={[{ required: true, message: '请输入详细地址' }]}
+                className="!text-base adm-form-item-horizontal"
+              >
+                <TextArea
+                  placeholder="请填写详细地址"
+                  rows={3}
+                  className="!text-sm placeholder:text-xs"
+                />
+              </Form.Item>
+              <Form.Item
+                name="postcode"
+                label="邮政编码"
+                rules={[
+                  { pattern: /^[0-9]{6}$/, message: '请输入正确的邮政编码' }
+                ]}
+                className="!text-base adm-form-item-horizontal"
+              >
+                <Input placeholder="请填写邮政编码" className="!text-sm placeholder:text-xs" />
+              </Form.Item>
+            </>}
 
             {/* 邀请码（可选） */}
-            {userInfo?.role === 0 && <Form.Item
+            {userInfo?.role === 0 && miner.can_use_invite_code === 1 &&  <Form.Item
               name="inviteCode"
               label="邀请码"
               className="!text-base adm-form-item-horizontal"
               initialValue={inviteCode || ''}
-              rules={[{ validator: (_, value) => {
-                if (value && value.length !== 12) {
-                  return Promise.reject('请输入正确的邀请码')
+              rules={[{
+                validator: (_, value) => {
+                  if (value && value.length !== 12) {
+                    return Promise.reject('请输入正确的邀请码')
+                  }
+                  return Promise.resolve()
                 }
-                return Promise.resolve()
-              }}]}
+              }]}
             >
               <Input placeholder="邀请码（可选）" className="!text-sm placeholder:text-xs" />
             </Form.Item>}

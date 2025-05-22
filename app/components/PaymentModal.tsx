@@ -13,6 +13,7 @@ interface PaymentModalProps {
   paymentAddress: string
   expiration_time?: string
   minAmount?: number
+  miner: any
 }
 
 export default function PaymentModal({
@@ -21,8 +22,9 @@ export default function PaymentModal({
   paymentAddress,
   expiration_time = '',
   minAmount = 0.00000001,
+  miner
 }: PaymentModalProps) {
-  const [countdown, setCountdown] = useState('23:59:59')
+  // const [countdown, setCountdown] = useState('23:59:59')
 
   // useEffect(() => {
   //   // 设置倒计时
@@ -80,7 +82,7 @@ export default function PaymentModal({
         <div className="flex-1 overflow-auto px-4 py-4">
           <div className="flex flex-col justify-between items-center mb-2">
             <div className="text-sm text-gray-500">网络</div>
-            <div className="text-sm">Binance Smart Chain</div>
+            <div className="text-sm">{miner?.currency_type === 'BSC_USDT' ? 'Binance Smart Chain' : 'Ethereum'}</div>
           </div>
 
           <div className="flex flex-col items-center mb-2">
@@ -113,7 +115,7 @@ export default function PaymentModal({
           <div className="space-y-4 mb-6">
             <div className="flex justify-between items-center">
               <span className="text-sm text-gray-500">最小充币额</span>
-              <span className="text-sm">{minAmount} USDT</span>
+              <span className="text-sm">{minAmount} {miner?.currency_type === 'BSC_USDT' ? 'USDT' : 'CAD'}</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-sm text-gray-500">充币到账时间</span>

@@ -111,6 +111,7 @@ function WithdrawPageContent() {
   const [processingRecord, setProcessingRecord] = useState<any>()
   const [isLoading, setIsLoading] = useState(false)
   const [pageLoading, setPageLoading] = useState(false)
+  const [isTableLoading, setIsTableLoading] = useState(false)
 
   const { data: allowance, refetch: refetchAllowance } = useReadContract({
     abi: ERC20_ABI,
@@ -125,6 +126,8 @@ function WithdrawPageContent() {
 
   const getAvailableBalance = async () => {
     try {
+      if (!address) return
+      setPageLoading(true)
       const cadClient = createPublicClient({
         chain: CAD_CHAIN,
         transport: http()
@@ -150,6 +153,8 @@ function WithdrawPageContent() {
       }
     } catch (error) {
       console.error('获取可提现金额失败:', error)
+    } finally {
+      setPageLoading(false)
     }
   }
 
@@ -167,6 +172,7 @@ function WithdrawPageContent() {
           setSubmitting(false)
           setShowWalletModal(false)
           await fetchHistoryAddresses()
+          await getAvailableBalance()
         }
       }
     } catch (error) {
@@ -186,7 +192,7 @@ function WithdrawPageContent() {
   // 获取历史地址
   const fetchHistoryAddresses = async () => {
     try {
-      setPageLoading(true)
+      setIsTableLoading(true)
       const addresses: any = await userService.getHistoryAddress()
       console.log('addresses', addresses)
       if (addresses) {
@@ -209,7 +215,7 @@ function WithdrawPageContent() {
     } catch (error) {
       console.error('获取历史地址失败:', error)
     } finally {
-      setPageLoading(false)
+      setIsTableLoading(false)
     }
   }
 
@@ -259,7 +265,7 @@ function WithdrawPageContent() {
   }
 
   // 添加轮询获取记录的函数
-  const pollWithdrawalRecord = async (txHash: string, maxAttempts = 15, interval = 2000) => {
+  const pollWithdrawalRecord = async (txHash: string, maxAttempts = 30, interval = 2000) => {
     for (let i = 0; i < maxAttempts; i++) {
       try {
         const record: any = await userService.getWithdrawalRecords(1)
@@ -528,8 +534,9 @@ function WithdrawPageContent() {
           setTipText('')
         } else {
           Toast.show({
-            content: '等待后台处理中，请稍后在记录中确认',
+            content: '获取签名超时，可刷新提现记录后继续提现',
             position: 'center',
+            duration: 3000
           })
           setIsWithdrawing(false)
           setShowStepsModal(false)
@@ -543,10 +550,10 @@ function WithdrawPageContent() {
         setStepStatus('wait')
       }
     } catch (error) {
-      console.error('操作失败:', error)
+      console.error('跨链转出失败:', error)
       if (!error.message.includes('User denied') && !error.message.includes('user rejected') && !error.message.includes('User rejected')) {
         Toast.show({
-          content: error.message || '操作失败，请重试',
+          content: '跨链转出失败：' + error.message || '跨链转出失败，请重试',
           position: 'center',
         })
       }
@@ -672,8 +679,13 @@ function WithdrawPageContent() {
     // 检查是否过期
     const isExpired = record?.deadline && moment().unix() > record.deadline
 
+    // 已退回
+    const isRefunded = record?.cancel_tx_hash && record?.cancel_tx_hash != "failed" && record?.cancel_tx_hash != "0x0"
+    if (isRefunded) {
+      return <span className="px-2 py-0.5 text-red-500 bg-red-50 rounded text-xs">已退回</span>
+    }
     // 如果已过期，显示过期状态
-    if (isExpired) {
+    if (isExpired && record?.to_chain_tx_status !== 1) {
       return <span className="px-2 py-0.5 text-red-500 bg-red-50 rounded text-xs">已过期</span>
     }
 
@@ -751,7 +763,7 @@ function WithdrawPageContent() {
   // 计算实际到账金额
   useEffect(() => {
     const amount = parseFloat(withdrawAmount) || 0
-    setActualAmount(amount - amount * fee)
+    if (amount >= 0) setActualAmount(amount - amount * fee)
   }, [withdrawAmount, fee])
 
   // 在组件加载时获取历史地址
@@ -865,7 +877,7 @@ function WithdrawPageContent() {
                 color="primary"
                 className="!rounded-lg !h-11"
                 onClick={handleWithdraw}
-                disabled={!withdrawAddress || !profitAddress || !Number(withdrawAmount) || !Number(availableBalance) || !address || !historyAddresses.length}
+                disabled={!withdrawAddress || !profitAddress || !Number(withdrawAmount) || !Number(availableBalance) || !address || !historyAddresses.length || parseFloat(withdrawAmount) <= 0}
               >
                 {!address ? '请先连接钱包' : '确认提现'}
               </Button>
@@ -934,8 +946,9 @@ function WithdrawPageContent() {
                 if (value && parseFloat(value) > parseFloat(availableBalance)) {
                   return Promise.reject('提现数量不能大于可提现金额');
                 }
-                if (value === 0 || parseFloat(value) === 0) {
-                  return Promise.reject('提现数量不能为0');
+
+                if (value === 0 || parseFloat(value) === 0 || !value || parseFloat(value) < 0) {
+                  return Promise.reject('请输入正确的提现数量');
                 }
                 return Promise.resolve();
               }
@@ -1021,37 +1034,39 @@ function WithdrawPageContent() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {withdrawalRecords.length > 0 ? withdrawalRecords.slice(0, 10).map((record, index) => (
-                <tr key={index} className="grid grid-cols-5 px-1 py-2 text-xs">
-                  <td className="text-left">{Number(ethers.utils.formatEther(record.amount.toString()))} CAD</td>
-                  <td className="text-left">{moment(record.created_at).format('YYYY-MM-DD HH:mm:ss')}</td>
-                  <td className="text-center text-[#165DFF]">{record.to.slice(0, 6)}...{record.to.slice(-4)}</td>
-                  <td className="text-right">{getStatusTag(record)}</td>
-                  <td className="text-right flex flex-col gap-1 justify-start items-end">
-                    {(
-                      <>
-                        {record.to_chain_tx_status === 0 && record?.signature && record.deadline && moment().unix() < record.deadline &&
-                          <Button
-                            size="small"
-                            className='!rounded-lg !text-xs !w-[80%] !bg-[#165DFF] !text-white'
-                            loading={processingRecord?.id === record.id}
-                            disabled={processingRecord?.id === record.id || isLoading}
-                            onClick={() => { recentOperatedIds.includes(record.id) ? refreshSingleRecord(record.id) : handleEthereumBridge(record, true) }}
-                          >
-                            {processingRecord?.id === record.id || isLoading ? <i className="fas fa-spinner fa-spin"></i> : recentOperatedIds.includes(record.id) ? '刷新' : '提取'}
-                          </Button>
-                        }
+              {isTableLoading ? <tr><td colSpan={5} className="text-center text-gray-500"><Loading /></td></tr> : <>
+                {withdrawalRecords.length > 0 ? withdrawalRecords.slice(0, 10).map((record, index) => (
+                  <tr key={index} className="grid grid-cols-5 px-1 py-2 text-xs">
+                    <td className="text-left">{Number(ethers.utils.formatEther(record.amount.toString()))} CAD</td>
+                    <td className="text-left">{moment(record.created_at).format('YYYY-MM-DD HH:mm:ss')}</td>
+                    <td className="text-center text-[#165DFF]">{record.to.slice(0, 6)}...{record.to.slice(-4)}</td>
+                    <td className="text-right">{getStatusTag(record)}</td>
+                    <td className="text-right flex flex-col gap-1 justify-start items-end">
+                      {(
+                        <>
+                          {record.to_chain_tx_status === 0 && record?.signature && record.deadline && moment().unix() < record.deadline &&
+                            <Button
+                              size="small"
+                              className='!rounded-lg !text-xs !w-[80%] !bg-[#165DFF] !text-white'
+                              loading={processingRecord?.id === record.id}
+                              disabled={processingRecord?.id === record.id || isLoading}
+                              onClick={() => { recentOperatedIds.includes(record.id) ? refreshSingleRecord(record.id) : handleEthereumBridge(record, true) }}
+                            >
+                              {processingRecord?.id === record.id || (isLoading && recentOperatedIds.includes(record.id)) ? <i className="fas fa-spinner fa-spin"></i> : recentOperatedIds.includes(record.id) ? '刷新' : '提取'}
+                            </Button>
+                          }
 
-                        {(record.to_chain_tx_status === 1 || record.to_chain_tx_status === 2 || !record.deadline || record?.deadline && moment().unix() > record.deadline) && <div>-</div>}
-                      </>
-                    )}
-                  </td>
-                </tr>
-              )) : (
-                <tr>
-                  <td colSpan={5} className="text-center text-gray-500">暂无提现记录</td>
-                </tr>
-              )}
+                          {(record.to_chain_tx_status === 1 || record.to_chain_tx_status === 2 || !record.deadline || record?.deadline && moment().unix() > record.deadline) && <div>-</div>}
+                        </>
+                      )}
+                    </td>
+                  </tr>
+                )) : (
+                  <tr>
+                    <td colSpan={5} className="text-center text-gray-500">暂无提现记录</td>
+                  </tr>
+                )}
+              </>}
             </tbody>
           </table>
         </div>
@@ -1143,12 +1158,12 @@ function WithdrawPageContent() {
                       {record.to_chain_tx_status === 0 && record?.signature && record.deadline && moment().unix() < record.deadline &&
                         <Button
                           size="small"
-                          className='!rounded-lg !text-xs !w-[80%]'
+                          className='!rounded-lg !text-xs !w-[80%] !bg-[#165DFF] !text-white'
                           loading={processingRecord?.id === record.id}
                           disabled={processingRecord?.id === record.id || isLoading}
                           onClick={() => { recentOperatedIds.includes(record.id) ? refreshSingleRecord(record.id) : handleEthereumBridge(record, true) }}
                         >
-                          {processingRecord?.id === record.id || isLoading ? <i className="fas fa-spinner fa-spin"></i> : recentOperatedIds.includes(record.id) ? '刷新' : '提取'}
+                          {processingRecord?.id === record.id || (isLoading && recentOperatedIds.includes(record.id)) ? <i className="fas fa-spinner fa-spin"></i> : recentOperatedIds.includes(record.id) ? '刷新' : '提取'}
                         </Button>
                       }
                       {(record.to_chain_tx_status === 1 || record.to_chain_tx_status === 2 || !record.deadline) && <div>-</div>}
@@ -1279,7 +1294,7 @@ function WithdrawPageContent() {
 
           <Steps current={currentStep}>
             <Steps.Step title="1" description="授权" />
-            <Steps.Step title="2" description="CAD转入" />
+            <Steps.Step title="2" description="跨链转出" />
             <Steps.Step title="3" description="提取" />
           </Steps>
 
@@ -1304,7 +1319,7 @@ function WithdrawPageContent() {
                 onClick={handleTestnetBridge}
                 className="!rounded-lg !h-11"
               >
-                {stepStatus === 'process' ? '处理中...' : '确认转入'}
+                {stepStatus === 'process' ? '处理中...' : '确认转出'}
               </Button>
             )}
 
@@ -1322,7 +1337,7 @@ function WithdrawPageContent() {
 
             <div className="text-sm text-gray-500 text-center">
               {currentStep === 0 && '请先授权'}
-              {currentStep === 1 && (tipText ? tipText : '请确认转入')}
+              {currentStep === 1 && (tipText ? tipText : '请确认转出')}
               {currentStep === 2 && '请确认提取'}
             </div>
           </div>

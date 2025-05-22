@@ -10,11 +10,12 @@ import { usePathname } from 'next/navigation'
 import Header from './components/Header'
 import TabNav from './components/TabNav'
 import { Suspense } from 'react'
+import Loading from './components/Loading'
 
 const inter = Inter({ subsets: ['latin'] })
 
 // 定义不需要显示侧边栏和Tab的路由
-const noLayoutRoutes = ['/login/', '/register', '/forgot-password']
+const noLayoutRoutes = ['/login', '/register', '/forgot-password']
 
 function RootLayoutContent({
   children,
@@ -30,7 +31,7 @@ function RootLayoutContent({
       <div className="flex flex-col">
         <main className={`flex-1 ${showLayout ? 'md:px-4 md:pb-0' : ''}`}>
           <AuthProvider>
-            <Suspense fallback={<div>加载中...</div>}>
+            <Suspense fallback={<Loading />}>
               {children}
             </Suspense>
             <Toaster position="top-right" />
@@ -62,7 +63,7 @@ export default function RootLayout({
       </head>
       <body className={inter.className}>
         <Providers>
-          <Suspense fallback={<div>加载中...</div>}>
+          <Suspense fallback={<Loading />}>
             <RootLayoutContent>{children}</RootLayoutContent>
           </Suspense>
         </Providers>
